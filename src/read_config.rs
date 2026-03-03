@@ -10,52 +10,51 @@ use crate::types::ConfigEntry;
 #[macro_export]
 macro_rules! entries {
     (
-        $( $key:literal => $variant:ident $( $arg:expr )? ),* $(,)?
+        $( $key:literal => $variant:ident $( { $( $field:ident : $value:expr ),* $(,)? } )? ),* $(,)?
     ) => {{
         let mut map = ::std::collections::HashMap::new();
         $(
             map.insert(
                 $key.to_string(),
-                entries!(@build $variant $( $arg )?)
+                entries!(@build $variant $( { $( $field : $value ),* } )?)
             );
         )*
         map
     }};
 
-    (@build Flag) => {
+    (@build Flag $({})?) => {
         ConfigEntry::Flag
     };
 
-    (@build Text) => {
+    (@build Text $({})?) => {
         ConfigEntry::Text { default: None }
     };
 
-    (@build Text $val:expr) => {
+    (@build Text { default: $val:expr }) => {
         ConfigEntry::Text { default: Some($val.into()) }
     };
 
-    (@build Int) => {
+    (@build Int $({})?) => {
         ConfigEntry::Int { default: None }
     };
 
-    (@build Int $val:expr) => {
+    (@build Int { default: $val:expr }) => {
         ConfigEntry::Int { default: Some($val) }
     };
 
-    (@build Count) => {
+    (@build Count $({})?) => {
         ConfigEntry::Count
     };
 
-    (@build List) => {
+    (@build List $({})?) => {
         ConfigEntry::List { sep: None }
     };
 
-    (@build List $val:expr) => {
+    (@build List { sep: $val:expr }) => {
         ConfigEntry::List { sep: Some($val.into()) }
     };
 
-    // ----- Alias (mandatory argument) -----
-    (@build Alias $val:expr) => {
+    (@build Alias { target: $val:expr }) => {
         ConfigEntry::Alias { target: $val.into() }
     };
 }
@@ -263,12 +262,12 @@ mod test {
     fn entries_macro() {
         let map: HashMap<String, ConfigEntry> = entries! {
             "quiet" => Flag,
-            "q" => Alias "quiet",
+            "q" => Alias { target: "quiet" },
             "verbose" => Count,
-            "v" => Alias "verbose",
+            "v" => Alias { target: "verbose" },
             "dry-run" => Flag,
-            "n" => Alias "dry-run",
-            "j" => Int 0,
+            "n" => Alias { target: "dry-run" },
+            "j" => Int { default: 0 },
             "browser" => Text,
             "hints" => List,
         };
