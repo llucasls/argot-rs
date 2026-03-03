@@ -1,0 +1,30 @@
+[entries.quiet]
+type = "flag"
+
+[entries.q]
+type = "alias"
+target = "quiet"
+
+[entries.verbose]
+type = "count"
+
+[entries.v]
+type = "alias"
+target = "verbose"
+
+[entries.dry-run]
+type = "flag"
+
+[entries.n]
+type = "alias"
+target = "dry-run"
+
+[entries.j]
+type = "int"
+default = 0
+
+[entries.browser]
+type = "text"
+
+[entries.hints]
+type = "list"

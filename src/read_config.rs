@@ -193,7 +193,7 @@ mod test {
 
     #[test]
     fn read_json_object() {
-        let map: HashMap<String, ConfigEntry> = read_json_config("config.json").unwrap();
+        let map: HashMap<String, ConfigEntry> = read_json_config("config_object.json").unwrap();
         let expected = HashMap::from([
             ("quiet".to_string(), ConfigEntry::Flag),
             ("q".to_string(), ConfigEntry::Alias { target: "quiet".to_string() }),
@@ -211,7 +211,7 @@ mod test {
 
     #[test]
     fn read_json_array() {
-        let map: HashMap<String, ConfigEntry> = read_json_config("config3.json").unwrap();
+        let map: HashMap<String, ConfigEntry> = read_json_config("config_array.json").unwrap();
         let expected = HashMap::from([
             ("quiet".to_string(), ConfigEntry::Flag),
             ("q".to_string(), ConfigEntry::Alias { target: "quiet".to_string() }),
@@ -227,7 +227,7 @@ mod test {
 
     #[test]
     fn read_toml_table() {
-        let map: HashMap<String, ConfigEntry> = read_toml_config("config.toml").unwrap();
+        let map: HashMap<String, ConfigEntry> = read_toml_config("config_table.toml").unwrap();
         let expected = HashMap::from([
             ("quiet".to_string(), ConfigEntry::Flag),
             ("q".to_string(), ConfigEntry::Alias { target: "quiet".to_string() }),
@@ -245,7 +245,7 @@ mod test {
 
     #[test]
     fn read_toml_array() {
-        let map: HashMap<String, ConfigEntry> = read_toml_config("config2.toml").unwrap();
+        let map: HashMap<String, ConfigEntry> = read_toml_config("config_array.toml").unwrap();
         let expected = HashMap::from([
             ("quiet".to_string(), ConfigEntry::Flag),
             ("q".to_string(), ConfigEntry::Alias { target: "quiet".to_string() }),

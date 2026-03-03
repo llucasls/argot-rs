@@ -1,0 +1,33 @@
+{
+  "quiet": {
+    "type": "flag"
+  },
+  "q": {
+    "type": "alias",
+    "target": "quiet"
+  },
+  "verbose": {
+    "type": "count"
+  },
+  "v": {
+    "type": "alias",
+    "target": "verbose"
+  },
+  "dry-run": {
+    "type": "flag"
+  },
+  "n": {
+    "type": "alias",
+    "target": "dry-run"
+  },
+  "j": {
+    "type": "int",
+    "default": 0
+  },
+  "browser": {
+    "type": "text"
+  },
+  "hints": {
+    "type": "list"
+  }
+}

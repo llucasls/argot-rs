@@ -1,0 +1,31 @@
+[[entries]]
+option = "quiet"
+type = "flag"
+
+[[entries]]
+option = "q"
+type = "alias"
+target = "quiet"
+
+[[entries]]
+option = "verbose"
+type = "count"
+
+[[entries]]
+option = "v"
+type = "alias"
+target = "verbose"
+
+[[entries]]
+option = "dry-run"
+type = "flag"
+
+[[entries]]
+option = "n"
+type = "alias"
+target = "dry-run"
+
+[[entries]]
+option = "j"
+type = "int"
+default = 0
