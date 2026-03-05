@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use serde::Serialize;
 use serde::ser::{SerializeStruct, SerializeSeq, Serializer};
 
@@ -11,12 +13,28 @@ pub enum ConfigEntry {
     Alias { target: String },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum OptionValue {
     Flag,
     Text(String),
     Int(i64),
     List(Vec<String>),
+}
+
+impl<T> Add<T> for OptionValue
+where
+    T: Into<i64>,
+{
+    type Output = Self;
+
+    fn add(self, other: T) -> Self {
+        match self {
+            OptionValue::Int(num) => OptionValue::Int(num + other.into()),
+            _ => {
+                panic!("attempt to add integer to non-int OptionValue variant");
+            },
+        }
+    }
 }
 
 impl Serialize for ConfigEntry {
