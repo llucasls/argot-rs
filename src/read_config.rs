@@ -7,58 +7,6 @@ use toml::Value as TomlValue;
 
 use crate::types::ConfigEntry;
 
-#[macro_export]
-macro_rules! entries {
-    (
-        $( $key:literal => $variant:ident $( { $( $field:ident : $value:expr ),* $(,)? } )? ),* $(,)?
-    ) => {{
-        let mut map = ::std::collections::HashMap::new();
-        $(
-            map.insert(
-                $key.to_string(),
-                entries!(@build $variant $( { $( $field : $value ),* } )?)
-            );
-        )*
-        map
-    }};
-
-    (@build Flag $({})?) => {
-        ConfigEntry::Flag
-    };
-
-    (@build Text $({})?) => {
-        ConfigEntry::Text { default: None }
-    };
-
-    (@build Text { default: $val:expr }) => {
-        ConfigEntry::Text { default: Some($val.into()) }
-    };
-
-    (@build Int $({})?) => {
-        ConfigEntry::Int { default: None }
-    };
-
-    (@build Int { default: $val:expr }) => {
-        ConfigEntry::Int { default: Some($val) }
-    };
-
-    (@build Count $({})?) => {
-        ConfigEntry::Count
-    };
-
-    (@build List $({})?) => {
-        ConfigEntry::List { sep: None }
-    };
-
-    (@build List { sep: $val:expr }) => {
-        ConfigEntry::List { sep: Some($val.into()) }
-    };
-
-    (@build Alias { target: $val:expr }) => {
-        ConfigEntry::Alias { target: $val.into() }
-    };
-}
-
 fn toml_to_json(value: &TomlValue) -> JsonValue {
     match value {
         TomlValue::String(s) => JsonValue::String(s.to_string()),
@@ -189,6 +137,7 @@ pub fn read_toml_config(filename: &str) -> io::Result<HashMap<String, ConfigEntr
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::entries;
 
     #[test]
     fn read_json_object() {
