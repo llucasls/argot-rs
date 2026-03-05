@@ -71,7 +71,7 @@ fn toml_to_json(value: &TomlValue) -> JsonValue {
         TomlValue::Boolean(b) => JsonValue::Bool(*b),
         TomlValue::Datetime(dt) => JsonValue::String(dt.to_string()),
         TomlValue::Array(arr) => {
-            JsonValue::Array(arr.into_iter().map(toml_to_json).collect())
+            JsonValue::Array(arr.iter().map(toml_to_json).collect())
         }
         TomlValue::Table(table) => {
             let map: Map<String, JsonValue> = table

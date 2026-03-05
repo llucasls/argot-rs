@@ -297,7 +297,7 @@ impl ArgParser {
         let mut iter = arg.char_indices();
         let _ = iter.next(); /* discard leading - */
 
-        while let Some((i, flag)) = iter.next() {
+        for (i, flag) in iter {
             let name: String = String::from(flag);
             let next_value: Option<&str> = next_arg.map(|v| v.as_ref());
             let Some(entry) = self.configs.get(&name) else {
@@ -387,7 +387,7 @@ impl ArgParser {
                                         .to_string();
                                     pairs.insert(
                                         target,
-                                        OptionValue::Text(value.into())
+                                        OptionValue::Text(value)
                                     );
                                     return Ok((false, pairs));
                                 } else if let Some(value) = default {
@@ -491,7 +491,6 @@ impl ArgParser {
 
 #[cfg(test)]
 mod test_parse {
-    use std::env;
     use super::*;
     use crate::entries;
 
@@ -502,7 +501,7 @@ mod test_parse {
             "color" => Text,
         };
         let parser = ArgParser::new(configs);
-        let mut input = ["--quiet", "build", "CC=clang"];
+        let input = ["--quiet", "build", "CC=clang"];
         let result = parser.parse(input);
 
         let operands = ["build"];
