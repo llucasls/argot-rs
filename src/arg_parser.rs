@@ -328,7 +328,7 @@ impl ArgParser {
     {
         let n: usize = arg.len();
         let mut pairs: HashMap<String, OptionValue> = HashMap::new();
-        let mut iter = arg.char_indices();
+        let iter = arg.char_indices();
 
         for (i, flag) in iter {
             let name: String = String::from(flag);
