@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs::{File, read_to_string};
 use std::io::{BufReader, ErrorKind, self};
+use std::path::Path;
 
 use serde_json::{Value as JsonValue, Map};
 use toml::Value as TomlValue;
@@ -113,7 +114,10 @@ fn parse_value(json_value: JsonValue) -> io::Result<HashMap<String, ConfigEntry>
     Ok(dictionary)
 }
 
-pub fn read_json_config(filename: &str) -> io::Result<HashMap<String, ConfigEntry>> {
+pub fn read_json_config<P>(filename: P) -> io::Result<HashMap<String, ConfigEntry>>
+where
+    P: AsRef<Path>,
+{
     let file = File::open(filename)?;
     let reader = BufReader::new(file);
 
@@ -121,7 +125,10 @@ pub fn read_json_config(filename: &str) -> io::Result<HashMap<String, ConfigEntr
     parse_value(config)
 }
 
-pub fn read_toml_config(filename: &str) -> io::Result<HashMap<String, ConfigEntry>> {
+pub fn read_toml_config<P>(filename: P) -> io::Result<HashMap<String, ConfigEntry>>
+where
+    P: AsRef<Path>,
+{
     let text = read_to_string(filename)?;
 
     let table: TomlValue = toml::from_str(&text)
