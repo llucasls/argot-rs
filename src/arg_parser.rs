@@ -515,4 +515,24 @@ mod test_parse {
         assert_eq!(result.clone().unwrap().parameters, parameters);
         assert_eq!(result.clone().unwrap().operands, operands);
     }
+
+    #[test]
+    fn parse_short_options() {
+        let configs = entries! {
+            "c" => Text,
+            "s" => Text,
+            "j" => Int { default: 0 },
+        };
+        let parser = ArgParser::new(configs);
+        let input = ["-c./some_file.txt", "some arg"];
+        let result = parser.parse(input);
+
+        let operands = ["some arg"];
+        let options: HashMap<String, OptionValue> = HashMap::from([
+            ("c".to_string(), OptionValue::Text("./some_file.txt".to_string())),
+        ]);
+
+        assert_eq!(result.clone().unwrap().options, options);
+        assert_eq!(result.clone().unwrap().operands, operands);
+    }
 }
