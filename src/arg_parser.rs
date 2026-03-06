@@ -105,7 +105,41 @@ impl ArgParser {
                         .parse_short_option(&flags, args.peek())?;
 
                     for (name, value) in pairs.drain() {
-                        options.insert(name, value);
+                        match self.configs.get(&name) {
+                            Some(ConfigEntry::Count) => {
+                                match options.get_mut(&name) {
+                                    Some(OptionValue::Int(old)) => {
+                                        if let OptionValue::Int(new) = value {
+                                            *old += new;
+                                        } else {
+                                            todo!();
+                                        };
+                                    },
+                                    None => {
+                                        options.insert(name, value);
+                                    },
+                                    _ => { todo!(); },
+                                }
+                            },
+                            Some(ConfigEntry::List { .. }) => {
+                                match options.get_mut(&name) {
+                                    Some(OptionValue::List(old)) => {
+                                        if let OptionValue::List(new) = value {
+                                            old.extend_from_slice(&new);
+                                        } else {
+                                            todo!();
+                                        };
+                                    },
+                                    None => {
+                                        options.insert(name, value);
+                                    },
+                                    _ => { todo!(); },
+                                }
+                            },
+                            _ => {
+                                options.insert(name, value);
+                            }
+                        }
                     }
 
                     if skip {
