@@ -334,7 +334,7 @@ impl ArgParser {
             let name: String = String::from(flag);
             let next_value: Option<&str> = next_arg.map(|v| v.as_ref());
             let Some(entry) = self.configs.get(&name) else {
-                return Err("option not supported".into());
+                return Err(format!("option '{}' is not supported", name));
             };
 
             match entry {
