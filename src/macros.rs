@@ -10,43 +10,43 @@ macro_rules! entries {
                 $crate::entries!(@build $variant $( { $( $field : $value ),* } )?)
             );
         )*
-        $crate::ParserConfig::new($crate::ConfigEntries::Map(map))
+        $crate::arg_parser::ParserConfig::new($crate::types::ConfigEntries::Map(map))
     }};
 
     (@build Flag $({})?) => {
-        $crate::ConfigEntry::Flag
+        $crate::types::ConfigEntry::Flag
     };
 
     (@build Text $({})?) => {
-        $crate::ConfigEntry::Text { default: None }
+        $crate::types::ConfigEntry::Text { default: None }
     };
 
     (@build Text { default: $val:expr }) => {
-        $crate::ConfigEntry::Text { default: Some($val.into()) }
+        $crate::types::ConfigEntry::Text { default: Some($val.into()) }
     };
 
     (@build Int $({})?) => {
-        $crate::ConfigEntry::Int { default: None }
+        $crate::types::ConfigEntry::Int { default: None }
     };
 
     (@build Int { default: $val:expr }) => {
-        $crate::ConfigEntry::Int { default: Some($val) }
+        $crate::types::ConfigEntry::Int { default: Some($val) }
     };
 
     (@build Count $({})?) => {
-        $crate::ConfigEntry::Count
+        $crate::types::ConfigEntry::Count
     };
 
     (@build List $({})?) => {
-        $crate::ConfigEntry::List { sep: None }
+        $crate::types::ConfigEntry::List { sep: None }
     };
 
     (@build List { sep: $val:expr }) => {
-        $crate::ConfigEntry::List { sep: Some($val.into()) }
+        $crate::types::ConfigEntry::List { sep: Some($val.into()) }
     };
 
     (@build Alias { target: $val:expr }) => {
-        $crate::ConfigEntry::Alias { target: $val.into() }
+        $crate::types::ConfigEntry::Alias { target: $val.into() }
     };
 
     (@build $unknown:ident $($rest:tt)*) => {
