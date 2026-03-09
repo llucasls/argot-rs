@@ -1,6 +1,4 @@
 #![cfg(feature = "toml")]
-#[allow(unused_imports)]
-use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::io::{ErrorKind, self};
 use std::path::Path;
@@ -11,8 +9,6 @@ use toml::from_str;
 use crate::types::ConfigEntries;
 use crate::arg_parser::ParserConfig;
 
-#[allow(unused_imports)]
-use crate::types::ConfigEntry;
 
 #[derive(Deserialize)]
 struct Table {
@@ -34,6 +30,8 @@ where
 #[cfg(test)]
 mod test_toml {
     use super::*;
+    use std::collections::HashMap;
+    use crate::types::ConfigEntry;
 
     #[test]
     fn read_toml_table() {

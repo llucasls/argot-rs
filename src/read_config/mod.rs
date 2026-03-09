@@ -4,7 +4,6 @@ pub mod toml;
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
-
     use crate::{entries, ConfigEntry};
 
     #[test]

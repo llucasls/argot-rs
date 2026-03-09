@@ -1,6 +1,4 @@
 #![cfg(feature = "json")]
-#[allow(unused_imports)]
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, self};
 use std::path::Path;
@@ -8,10 +6,6 @@ use std::path::Path;
 use crate::types::ConfigEntries;
 use crate::arg_parser::ParserConfig;
 
-#[allow(unused_imports)]
-use crate::types::ConfigEntry;
-
-//pub fn read_config_file<P>(filename: P) -> io::Result<HashMap<String, ConfigEntry>>
 pub fn read_config_file<P>(filename: P) -> io::Result<ParserConfig>
 where
     P: AsRef<Path>,
@@ -26,6 +20,8 @@ where
 #[cfg(test)]
 mod test_json {
     use super::*;
+    use std::collections::HashMap;
+    use crate::types::ConfigEntry;
 
     #[test]
     fn read_json_object() {
