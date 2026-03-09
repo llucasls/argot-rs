@@ -5,6 +5,7 @@ edition = "2024"
 rust-version = "1.93"
 license = "ISC"
 description = "An easy-to-use yet expressive command-line argument parser."
+readme = "README.md"
 
 [[bin]]
 name = "argot"
