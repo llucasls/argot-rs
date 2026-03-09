@@ -1,20 +1,123 @@
+use std::collections::HashMap;
 use std::ops::Add;
 
-use serde::Serialize;
-use serde::ser::{SerializeStruct, SerializeSeq, Serializer};
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+#[cfg(feature = "serde")]
+use serde::ser::{SerializeStruct, Serializer};
 
-#[derive(Debug, PartialEq)]
-pub enum ConfigEntry {
-    Flag,
-    Text { default: Option<String> },
-    Int { default: Option<i64> },
-    Count,
-    List { sep: Option<String> },
-    Alias { target: String },
+#[cfg(feature = "serde")]
+type SResult<S> = Result<<S as Serializer>::Ok, <S as Serializer>::Error>;
+
+#[cfg(feature = "serde")]
+fn serialize_text_entry<S>(default: &Option<String>, serializer: S) -> SResult<S>
+where
+    S: Serializer
+{
+    let name = "TextEntry";
+    if let Some(value) = default {
+        let mut entry = serializer.serialize_struct(name, 2)?;
+        entry.serialize_field("type", "text")?;
+        entry.serialize_field("default", value)?;
+        entry.end()
+    } else {
+        let mut entry = serializer.serialize_struct(name, 1)?;
+        entry.serialize_field("type", "text")?;
+        entry.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+fn serialize_int_entry<S>(default: &Option<i64>, serializer: S) -> SResult<S>
+where
+    S: Serializer
+{
+    let name = "IntEntry";
+    if let Some(value) = default {
+        let mut entry = serializer.serialize_struct(name, 2)?;
+        entry.serialize_field("type", "int")?;
+        entry.serialize_field("default", value)?;
+        entry.end()
+    } else {
+        let mut entry = serializer.serialize_struct(name, 1)?;
+        entry.serialize_field("type", "int")?;
+        entry.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+fn serialize_list_entry<S>(sep: &Option<String>, serializer: S) -> SResult<S>
+where
+    S: Serializer,
+{
+    let name = "ListEntry";
+    if let Some(value) = sep {
+        let mut entry = serializer.serialize_struct(name, 2)?;
+        entry.serialize_field("type", "list")?;
+        entry.serialize_field("sep", &value)?;
+        entry.end()
+    } else {
+        let mut entry = serializer.serialize_struct(name, 1)?;
+        entry.serialize_field("type", "list")?;
+        entry.end()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(tag = "type", rename_all = "lowercase"))]
+pub enum ConfigEntry {
+    Flag,
+
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_text_entry"))]
+    Text { default: Option<String> },
+
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_int_entry"))]
+    Int { default: Option<i64> },
+
+    Count,
+
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_list_entry"))]
+    List { sep: Option<String> },
+
+    Alias { target: String },
+}
+
+#[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize))]
+pub struct LabeledEntry {
+    pub option: String,
+
+    #[cfg_attr(feature = "serde", serde(flatten))]
+    pub entry: ConfigEntry,
+}
+
+#[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize), serde(untagged))]
+pub enum ConfigEntries {
+    Map(HashMap<String, ConfigEntry>),
+    List(Vec<LabeledEntry>),
+}
+
+impl ConfigEntries {
+    pub fn len(&self) -> usize {
+        match self {
+            Self::Map(map) => map.len(),
+            Self::List(list) => list.len(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(untagged))]
 pub enum OptionValue {
+    #[cfg_attr(feature = "serde", serde(with = "serde_flag"))]
     Flag,
     Text(String),
     Int(i64),
@@ -37,114 +140,68 @@ where
     }
 }
 
-impl Serialize for ConfigEntry {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+#[cfg(feature = "serde")]
+mod serde_flag {
+    use std::fmt;
+    use serde::ser::Serializer;
+    use serde::de::{self, Deserializer, Visitor};
+
+    use super::SResult;
+
+    pub fn serialize<S>(serializer: S) -> SResult<S>
     where
         S: Serializer,
     {
-        match self {
-            Self::Flag => {
-                let name = "FlagEntry";
-                let mut entry = serializer.serialize_struct(name, 1)?;
-                entry.serialize_field("type", "flag")?;
-                entry.end()
-            },
-            Self::Text { default } => {
-                let name = "TextEntry";
-                if let Some(value) = default {
-                    let mut entry = serializer.serialize_struct(name, 2)?;
-                    entry.serialize_field("type", "text")?;
-                    entry.serialize_field("default", value)?;
-                    entry.end()
-                } else {
-                    let mut entry = serializer.serialize_struct(name, 1)?;
-                    entry.serialize_field("type", "text")?;
-                    entry.end()
-                }
-            },
-            Self::Int { default } => {
-                let name = "IntEntry";
-                if let Some(value) = default {
-                    let mut entry = serializer.serialize_struct(name, 2)?;
-                    entry.serialize_field("type", "int")?;
-                    entry.serialize_field("default", value)?;
-                    entry.end()
-                } else {
-                    let mut entry = serializer.serialize_struct(name, 1)?;
-                    entry.serialize_field("type", "int")?;
-                    entry.end()
-                }
-            },
-            Self::Count => {
-                let name = "CountEntry";
-                let mut entry = serializer.serialize_struct(name, 1)?;
-                entry.serialize_field("type", "count")?;
-                entry.end()
-            },
-            Self::List { sep } => {
-                let name = "ListEntry";
-                if let Some(value) = sep {
-                    let mut entry = serializer.serialize_struct(name, 2)?;
-                    entry.serialize_field("type", "list")?;
-                    entry.serialize_field("sep", value)?;
-                    entry.end()
-                } else {
-                    let mut entry = serializer.serialize_struct(name, 1)?;
-                    entry.serialize_field("type", "list")?;
-                    entry.end()
-                }
-            },
-            Self::Alias { target } => {
-                let name = "AliasEntry";
-                let mut entry = serializer.serialize_struct(name, 2)?;
-                entry.serialize_field("type", "alias")?;
-                entry.serialize_field("target", target)?;
-                entry.end()
-            },
+        serializer.serialize_bool(true)
+    }
+
+    struct FlagVisitor;
+
+    impl<'de> Visitor<'de> for FlagVisitor {
+        type Value = ();
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a boolean true")
+        }
+
+        fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            if value {
+                Ok(())
+            } else {
+                Err(E::custom("flag cannot be false"))
+            }
         }
     }
-}
 
-impl Serialize for OptionValue {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<(), D::Error>
     where
-        S: Serializer,
+        D: Deserializer<'de>,
     {
-        match self {
-            Self::Flag => serializer.serialize_bool(true),
-            Self::Text(text) => serializer.serialize_str(text),
-            Self::Int(num) => serializer.serialize_i64(*num),
-            Self::List(list) => {
-                let mut seq = serializer.serialize_seq(Some(list.len()))?;
-                for item in list {
-                    seq.serialize_element(item)?;
-                }
-                seq.end()
-            },
-        }
+        deserializer.deserialize_bool(FlagVisitor)
     }
 }
 
-#[cfg(test)]
-mod test_config_entry {
+#[cfg(all(test, feature = "json"))]
+mod test_config_entry_serialize {
     use super::*;
-    use serde_json::{json, to_value, to_string};
+    use serde_json::{json, to_value};
 
     #[test]
     fn serialize_config_entry_flag() {
         let value = to_value(ConfigEntry::Flag).unwrap();
         let expected = json!({ "type": "flag" });
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
+
         assert_eq!(value, expected);
     }
 
     #[test]
     fn serialize_config_entry_text_none() {
         let value = to_value(ConfigEntry::Text { default: None }).unwrap();
-        let expected = json!({
-            "type": "text",
-        });
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
+        let expected = json!({ "type": "text" });
+
         assert_eq!(value, expected);
     }
 
@@ -153,38 +210,24 @@ mod test_config_entry {
         let value = to_value(ConfigEntry::Text {
             default: Some("xdg-open".to_string()),
         }).unwrap();
+        let expected = json!({ "type": "text", "default": "xdg-open" });
 
-        let expected = json!({
-            "type": "text",
-            "default": "xdg-open",
-        });
-
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
         assert_eq!(value, expected);
     }
 
     #[test]
     fn serialize_config_entry_int_none() {
         let value = to_value(ConfigEntry::Int { default: None }).unwrap();
+        let expected = json!({ "type": "int" });
 
-        let expected = json!({
-            "type": "int",
-        });
-
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
         assert_eq!(value, expected);
     }
 
     #[test]
     fn serialize_config_entry_int_some() {
         let value = to_value(ConfigEntry::Int { default: Some(42) }).unwrap();
+        let expected = json!({ "type": "int", "default": 42 });
 
-        let expected = json!({
-            "type": "int",
-            "default": 42,
-        });
-
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
         assert_eq!(value, expected);
     }
 
@@ -192,19 +235,15 @@ mod test_config_entry {
     fn serialize_config_entry_count() {
         let value = to_value(ConfigEntry::Count).unwrap();
         let expected = json!({ "type": "count" });
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
+
         assert_eq!(value, expected);
     }
 
     #[test]
     fn serialize_config_entry_list_none() {
         let value = to_value(ConfigEntry::List { sep: None }).unwrap();
+        let expected = json!({ "type": "list" });
 
-        let expected = json!({
-            "type": "list",
-        });
-
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
         assert_eq!(value, expected);
     }
 
@@ -212,15 +251,9 @@ mod test_config_entry {
     fn serialize_config_entry_list_some() {
         let value = to_value(ConfigEntry::List {
             sep: Some(":".to_string()),
-        })
-        .unwrap();
+        }).unwrap();
+        let expected = json!({ "type": "list", "sep": ":" });
 
-        let expected = json!({
-            "type": "list",
-            "sep": ":",
-        });
-
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
         assert_eq!(value, expected);
     }
 
@@ -228,29 +261,246 @@ mod test_config_entry {
     fn serialize_config_entry_alias() {
         let value = to_value(ConfigEntry::Alias {
             target: "quiet".to_string(),
-        })
-        .unwrap();
+        }).unwrap();
+        let expected = json!({ "type": "alias", "target": "quiet" });
 
-        let expected = json!({
-            "type": "alias",
-            "target": "quiet",
-        });
-
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
         assert_eq!(value, expected);
     }
 }
 
-#[cfg(test)]
-mod test_option_value {
+#[cfg(all(test, feature = "json"))]
+mod test_config_entry_deserialize {
     use super::*;
-    use serde_json::{json, to_value, to_string};
+    use serde_json::{json, from_value};
+
+    #[test]
+    fn deserialize_config_entry_flag() {
+        let value = json!({ "type": "flag" });
+        let entry: ConfigEntry = from_value(value).unwrap();
+
+        assert_eq!(entry, ConfigEntry::Flag);
+    }
+
+    #[test]
+    fn deserialize_config_entry_text_none() {
+        let value = json!({ "type": "text" });
+        let entry: ConfigEntry = from_value(value).unwrap();
+
+        assert_eq!(entry, ConfigEntry::Text { default: None });
+    }
+
+    #[test]
+    fn deserialize_config_entry_text_some() {
+        let value = json!({ "type": "text", "default": "all" });
+        let entry: ConfigEntry = from_value(value).unwrap();
+
+        let default = Some("all".to_string());
+        assert_eq!(entry, ConfigEntry::Text { default });
+    }
+
+    #[test]
+    fn deserialize_config_entry_int_none() {
+        let value = json!({ "type": "int" });
+        let entry: ConfigEntry = from_value(value).unwrap();
+
+        assert_eq!(entry, ConfigEntry::Int { default: None });
+    }
+
+    #[test]
+    fn deserialize_config_entry_int_some() {
+        let value = json!({ "type": "int", "default": 12 });
+        let entry: ConfigEntry = from_value(value).unwrap();
+
+        let default = Some(12);
+        assert_eq!(entry, ConfigEntry::Int { default });
+    }
+
+    #[test]
+    fn deserialize_config_entry_count() {
+    }
+
+    #[test]
+    fn deserialize_config_entry_list_none() {
+        let value = json!({ "type": "list" });
+        let entry: ConfigEntry = from_value(value).unwrap();
+
+        assert_eq!(entry, ConfigEntry::List { sep: None });
+    }
+
+    #[test]
+    fn deserialize_config_entry_list_some() {
+        let value = json!({ "type": "list", "sep": ":" });
+        let entry: ConfigEntry = from_value(value).unwrap();
+
+        let sep = Some(":".to_string());
+        assert_eq!(entry, ConfigEntry::List { sep });
+    }
+
+    #[test]
+    fn deserialize_config_entry_alias() {
+        let value = json!({ "type": "alias", "target": "quiet" });
+        let entry: ConfigEntry = from_value(value).unwrap();
+
+        let target = "quiet".to_string();
+        assert_eq!(entry, ConfigEntry::Alias { target });
+    }
+
+    #[test]
+    fn deserialize_config_entries_object() {
+        let value = json!({
+            "quiet": { "type": "flag" },
+            "q": { "type": "alias", "target": "quiet" },
+            "verbose": { "type": "count" },
+            "v": { "type": "alias", "target": "verbose" },
+            "j": { "type": "int", "default": 0 },
+            "browser": { "type": "text" },
+            "hints": { "type": "list" },
+        });
+        let configs: HashMap<String, ConfigEntry> = from_value(value).unwrap();
+        let expected = HashMap::from([
+            ("quiet".to_string(), ConfigEntry::Flag),
+            ("q".to_string(), ConfigEntry::Alias { target: "quiet".to_string() }),
+            ("verbose".to_string(), ConfigEntry::Count),
+            ("v".to_string(), ConfigEntry::Alias { target: "verbose".to_string() }),
+            ("j".to_string(), ConfigEntry::Int { default: Some(0) }),
+            ("browser".to_string(), ConfigEntry::Text { default: None }),
+            ("hints".to_string(), ConfigEntry::List { sep: None }),
+        ]);
+
+        assert_eq!(configs, expected);
+    }
+
+    #[test]
+    fn deserialize_config_entries_array() {
+        let value = json!([
+            { "option": "quiet", "type": "flag" },
+            { "option": "q", "type": "alias", "target": "quiet" },
+            { "option": "verbose", "type": "count" },
+            { "option": "v", "type": "alias", "target": "verbose" },
+            { "option": "j", "type": "int", "default": 0 },
+            { "option": "browser", "type": "text" },
+            { "option": "hints", "type": "list" },
+        ]);
+        let configs: Vec<LabeledEntry> = from_value(value).unwrap();
+        let expected = vec![
+            LabeledEntry {
+                option: "quiet".to_string(),
+                entry: ConfigEntry::Flag
+            },
+            LabeledEntry {
+                option: "q".to_string(),
+                entry: ConfigEntry::Alias { target: "quiet".to_string() }
+            },
+            LabeledEntry {
+                option: "verbose".to_string(),
+                entry: ConfigEntry::Count
+            },
+            LabeledEntry {
+                option: "v".to_string(),
+                entry: ConfigEntry::Alias { target: "verbose".to_string() }
+            },
+            LabeledEntry {
+                option: "j".to_string(),
+                entry: ConfigEntry::Int { default: Some(0) }
+            },
+            LabeledEntry {
+                option: "browser".to_string(),
+                entry: ConfigEntry::Text { default: None }
+            },
+            LabeledEntry {
+                option: "hints".to_string(),
+                entry: ConfigEntry::List { sep: None }
+            },
+        ];
+
+        assert_eq!(configs, expected);
+    }
+
+    #[test]
+    fn deserialize_config_entries_object_into_wrapper() {
+        let value = json!({
+            "quiet": { "type": "flag" },
+            "q": { "type": "alias", "target": "quiet" },
+            "verbose": { "type": "count" },
+            "v": { "type": "alias", "target": "verbose" },
+            "j": { "type": "int", "default": 0 },
+            "browser": { "type": "text" },
+            "hints": { "type": "list" },
+        });
+
+        let configs: ConfigEntries = from_value(value).unwrap();
+        let map = HashMap::from([
+            ("quiet".to_string(), ConfigEntry::Flag),
+            ("q".to_string(), ConfigEntry::Alias { target: "quiet".to_string() }),
+            ("verbose".to_string(), ConfigEntry::Count),
+            ("v".to_string(), ConfigEntry::Alias { target: "verbose".to_string() }),
+            ("j".to_string(), ConfigEntry::Int { default: Some(0) }),
+            ("browser".to_string(), ConfigEntry::Text { default: None }),
+            ("hints".to_string(), ConfigEntry::List { sep: None }),
+        ]);
+        let expected = ConfigEntries::Map(map);
+
+        assert_eq!(configs, expected);
+    }
+
+    #[test]
+    fn deserialize_config_entries_array_into_wrapper() {
+        let value = json!([
+            { "option": "quiet", "type": "flag" },
+            { "option": "q", "type": "alias", "target": "quiet" },
+            { "option": "verbose", "type": "count" },
+            { "option": "v", "type": "alias", "target": "verbose" },
+            { "option": "j", "type": "int", "default": 0 },
+            { "option": "browser", "type": "text" },
+            { "option": "hints", "type": "list" },
+        ]);
+        let configs: ConfigEntries = from_value(value).unwrap();
+        let list = vec![
+            LabeledEntry {
+                option: "quiet".to_string(),
+                entry: ConfigEntry::Flag
+            },
+            LabeledEntry {
+                option: "q".to_string(),
+                entry: ConfigEntry::Alias { target: "quiet".to_string() }
+            },
+            LabeledEntry {
+                option: "verbose".to_string(),
+                entry: ConfigEntry::Count
+            },
+            LabeledEntry {
+                option: "v".to_string(),
+                entry: ConfigEntry::Alias { target: "verbose".to_string() }
+            },
+            LabeledEntry {
+                option: "j".to_string(),
+                entry: ConfigEntry::Int { default: Some(0) }
+            },
+            LabeledEntry {
+                option: "browser".to_string(),
+                entry: ConfigEntry::Text { default: None }
+            },
+            LabeledEntry {
+                option: "hints".to_string(),
+                entry: ConfigEntry::List { sep: None }
+            },
+        ];
+        let expected = ConfigEntries::List(list);
+
+        assert_eq!(configs, expected);
+    }
+}
+
+#[cfg(all(test, feature = "json"))]
+mod test_option_value_serialize {
+    use super::*;
+    use serde_json::{json, to_value};
 
     #[test]
     fn serialize_option_value_flag() {
         let value = to_value(OptionValue::Flag).unwrap();
         let expected = json!(true);
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
+
         assert_eq!(value, expected);
     }
 
@@ -258,7 +508,7 @@ mod test_option_value {
     fn serialize_option_value_text() {
         let value = to_value(OptionValue::Text("build".into())).unwrap();
         let expected = json!("build");
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
+
         assert_eq!(value, expected);
     }
 
@@ -266,7 +516,7 @@ mod test_option_value {
     fn serialize_option_value_int() {
         let value = to_value(OptionValue::Int(123)).unwrap();
         let expected = json!(123);
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
+
         assert_eq!(value, expected);
     }
 
@@ -275,12 +525,76 @@ mod test_option_value {
         let value = to_value(OptionValue::List(vec![
             "file1.txt".into(),
             "file2.txt".into(),
-        ]))
-        .unwrap();
-
+        ])).unwrap();
         let expected = json!(["file1.txt", "file2.txt"]);
 
-        assert_eq!(to_string(&value).unwrap(), to_string(&expected).unwrap());
         assert_eq!(value, expected);
+    }
+}
+
+#[cfg(all(test, feature = "json"))]
+mod test_option_value_deserialize {
+    use super::*;
+    use serde_json::{json, from_value};
+
+    #[test]
+    fn deserialize_option_value_flag() {
+        let input = json!(true);
+        let output: OptionValue = from_value(input).unwrap();
+        let expected = OptionValue::Flag;
+
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn deserialize_option_value_text() {
+        let input = json!("install");
+        let output: OptionValue = from_value(input).unwrap();
+        let expected = OptionValue::Text("install".to_string());
+
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn deserialize_option_value_int() {
+        let input = json!(7);
+        let output: OptionValue = from_value(input).unwrap();
+        let expected = OptionValue::Int(7);
+
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn deserialize_option_value_list() {
+        let input = json!(["all", "install"]);
+        let output: OptionValue = from_value(input).unwrap();
+        let expected = OptionValue::List(vec![
+            "all".to_string(),
+            "install".to_string(),
+        ]);
+
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn deserialize_option_values_object() {
+        let input = json!({
+            "verbose": 2,
+            "dry-run": true,
+            "browser": "chromium",
+            "hints": ["test", "ui"]
+        });
+        let output: HashMap<String, OptionValue> = from_value(input).unwrap();
+        let expected = HashMap::from([
+            ("verbose".to_string(), OptionValue::Int(2)),
+            ("dry-run".to_string(), OptionValue::Flag),
+            ("browser".to_string(), OptionValue::Text("chromium".to_string())),
+            (
+                "hints".to_string(),
+                OptionValue::List(vec!["test".to_string(), "ui".to_string()]),
+            ),
+        ]);
+
+        assert_eq!(output, expected);
     }
 }

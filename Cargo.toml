@@ -5,7 +5,29 @@ edition = "2024"
 rust-version = "1.93"
 description = "An easy-to-use yet expressive command-line argument parser."
 
-[dependencies]
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = { version = "1.0.149", features = ["preserve_order"] }
-toml = { version = "0.9.11", features = ["preserve_order"] }
+[[bin]]
+name = "argot"
+path = "src/bin/argot.rs"
+required-features = ["cli"]
+
+[dependencies.serde]
+version = "1.0.228"
+features = ["derive"]
+optional = true
+
+[dependencies.serde_json]
+version = "1.0.149"
+features = ["preserve_order"]
+optional = true
+
+[dependencies.toml]
+version = "0.9.11"
+features = ["preserve_order"]
+optional = true
+
+[features]
+default = ["serde", "json", "cli"]
+serde = ["dep:serde"]
+json = ["serde", "dep:serde_json"]
+toml = ["serde", "dep:toml"]
+cli = []

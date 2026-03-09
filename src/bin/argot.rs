@@ -1,3 +1,8 @@
+#![cfg(feature = "cli")]
+
+#[cfg(not(any(feature = "json", feature = "toml")))]
+compile_error!("The CLI requires at least one serialization format.");
+
 use std::env;
 use std::ffi::OsStr;
 use std::fs::{File, create_dir_all};
@@ -5,11 +10,11 @@ use std::io::{self, BufReader, BufWriter, Write};
 use std::path::{PathBuf, Path};
 use std::process::ExitCode;
 
+#[cfg(feature = "json")]
 use serde_json::Value as JsonValue;
 
 use argot_cli::{
     ArgParser,
-    ConfigEntry,
     OptionValue,
     entries,
     read_json_config,
@@ -58,7 +63,22 @@ where
 }
 
 /// Read state file and return its parsed data
-fn read_state(file: &File) -> io::Result<JsonValue> {
+fn read_state<P>(filepath: P) -> io::Result<JsonValue>
+where
+    P: AsRef<Path>,
+{
+    let file = match File::open(filepath.as_ref()) {
+        Ok(file) => file,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => {
+            eprintln!("{}", e);
+            let kind = io::ErrorKind::NotFound;
+            let msg = format!("state file {:?} was not found", filepath.as_ref());
+            let error = io::Error::new(kind, msg);
+            return Err(error);
+        },
+        Err(e) => { return Err(e); },
+    };
+
     let reader = BufReader::new(file);
     let state: JsonValue = serde_json::from_reader(reader)?;
 
@@ -104,7 +124,7 @@ fn main() -> ExitCode {
         "s" => Alias { target: "sep" },
     };
 
-    let argot_cli_parser = ArgParser::new(argot_cli_configs);
+    let argot_cli_parser = ArgParser::new(argot_cli_configs.unwrap());
     let string_args: Vec<String> = args
         .map(|arg| arg.to_string_lossy().to_string())
         .collect();
@@ -177,15 +197,6 @@ fn main() -> ExitCode {
     let client_parser = ArgParser::new(client_configs);
     let client_args: Vec<&String> = iter.collect();
 
-    let file = match File::open(&state_file) {
-        Ok(file) => file,
-        Err(e) => error!(e),
-    };
-    let state = match read_state(&file) {
-        Ok(data) => data,
-        Err(e) => error!(e),
-    };
-
     match command {
         "parse" => {
             if let Err(e) = create_dir_all(state_dir) { error!(4, e) };
@@ -199,6 +210,10 @@ fn main() -> ExitCode {
             println!("parsed values saved to file: {:?}", state_file);
         },
         "json" => {
+            let state = match read_state(&state_file) {
+                Ok(data) => data,
+                Err(e) => error!(e),
+            };
             let json: String = match serde_json::to_string_pretty(&state) {
                 Ok(data) => data,
                 Err(e) => error!(e),
@@ -206,6 +221,10 @@ fn main() -> ExitCode {
             println!("{}", json);
         },
         "operands" => {
+            let state = match read_state(&state_file) {
+                Ok(data) => data,
+                Err(e) => error!(e),
+            };
             if let JsonValue::Object(obj) = state
             && let Some(JsonValue::Array(list)) = obj.get("operands") {
                 for operand in list {
@@ -216,6 +235,10 @@ fn main() -> ExitCode {
             }
         },
         "options" => {
+            let state = match read_state(&state_file) {
+                Ok(data) => data,
+                Err(e) => error!(e),
+            };
             if let JsonValue::Object(obj) = state
             && let Some(JsonValue::Object(map)) = obj.get("options") {
                 for (name, value) in map {
@@ -260,6 +283,10 @@ fn main() -> ExitCode {
             }
         },
         "parameters" => {
+            let state = match read_state(&state_file) {
+                Ok(data) => data,
+                Err(e) => error!(e),
+            };
             if let JsonValue::Object(obj) = state
             && let Some(JsonValue::Object(map)) = obj.get("parameters") {
                 for (name, value) in map {
@@ -289,6 +316,10 @@ fn main() -> ExitCode {
             }
         },
         "operand" => {
+            let state = match read_state(&state_file) {
+                Ok(data) => data,
+                Err(e) => error!(e),
+            };
             let Some(index_arg) = client_args.first() else {
                 error!("no index was provided");
             };
@@ -302,6 +333,10 @@ fn main() -> ExitCode {
             }
         },
         "option" => {
+            let state = match read_state(&state_file) {
+                Ok(data) => data,
+                Err(e) => error!(e),
+            };
             let Some(key) = client_args.first() else {
                 error!("no option name was provided");
             };
@@ -330,6 +365,10 @@ fn main() -> ExitCode {
             }
         },
         "parameter" => {
+            let state = match read_state(&state_file) {
+                Ok(data) => data,
+                Err(e) => error!(e),
+            };
             let Some(key) = client_args.first() else {
                 error!("no parameter name was provided");
             };
