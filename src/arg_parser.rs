@@ -131,7 +131,7 @@ impl ArgParser {
         Self { configs }
     }
 
-    pub fn parse<I, S>(&self, arg_list: I) -> Result<ParseResult, String>
+    pub fn parse<I, S>(&self, arg_list: I) -> Result<ParseResult, ArgotError>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -197,7 +197,7 @@ impl ArgParser {
                                     },
                                 }
                             },
-                            _ => {
+                            /* other entry types */ _ => {
                                 options.insert(name, value);
                             }
                         }
@@ -213,9 +213,9 @@ impl ArgParser {
                     match self.configs.get(name) {
                         Some(ConfigEntry::Count) => {
                             match options.get_mut(name) {
-                                Some(OptionValue::Int(old_value)) => {
-                                    if let OptionValue::Int(new_value) = value {
-                                        *old_value += new_value;
+                                Some(OptionValue::Int(old)) => {
+                                    if let OptionValue::Int(new) = value {
+                                        *old += new;
                                     } else {
                                         panic!("{}", INVALID_COUNT);
                                     };
@@ -230,9 +230,9 @@ impl ArgParser {
                         },
                         Some(ConfigEntry::List { .. }) => {
                             match options.get_mut(name) {
-                                Some(OptionValue::List(old_value)) => {
-                                    if let OptionValue::List(new_value) = value {
-                                        old_value.extend_from_slice(&new_value);
+                                Some(OptionValue::List(old)) => {
+                                    if let OptionValue::List(new) = value {
+                                        old.extend_from_slice(&new);
                                     } else {
                                         panic!("{}", INVALID_LIST);
                                     };
@@ -270,7 +270,7 @@ impl ArgParser {
         &'parser self,
         name: &'option str,
         value: Option<&str>,
-    ) -> Result<(&'result str, OptionValue), String>
+    ) -> Result<(&'result str, OptionValue), ArgotError>
     where
         'parser: 'result,
         'option: 'result,
@@ -286,7 +286,7 @@ impl ArgParser {
                 } else if let Some(text) = $default {
                     Ok(($name, OptionValue::Text(text.into())))
                 } else {
-                    Err("null arg".into())
+                    Err(ArgotError::NullArg(String::from($name)))
                 }
             }}
         }
@@ -298,14 +298,14 @@ impl ArgParser {
                         if let Ok(num) = text.parse::<i64>() {
                             Ok(($name, OptionValue::Int(num)))
                         } else {
-                            Err("invalid int".into())
+                            Err(ArgotError::NullInt(String::from($name)))
                         }
                     },
                     _ => {
                         if let Some(num) = $default {
                             Ok(($name, OptionValue::Int(*num)))
                         } else {
-                            Err("null int".into())
+                            Err(ArgotError::NullInt(String::from($name)))
                         }
                     }
                 }
@@ -315,7 +315,7 @@ impl ArgParser {
         macro_rules! count_option {
             ($name:ident, $val:ident) => {{
                 if $val.is_some() && $val.unwrap().parse::<i64>().is_err() {
-                    Err("invalid int".into())
+                    Err(ArgotError::NullInt(String::from($name)))
                 } else if let Some(text) = $val {
                     let num = text.parse().unwrap();
                     Ok(($name, OptionValue::Int(num)))
@@ -337,7 +337,7 @@ impl ArgParser {
                         .collect();
                     Ok(($name, OptionValue::List(list)))
                 } else {
-                    Err("null arg".into())
+                    Err(ArgotError::NullArg(String::from($name)))
                 }
             }}
         }
@@ -370,16 +370,16 @@ impl ArgParser {
                                 list_option!(target, value, sep)
                             },
                             ConfigEntry::Alias { .. } => {
-                                Err("alias to alias".into())
+                                Err(ArgotError::Alias2Alias)
                             },
                         }
                     } else {
-                        Err("target option not found".into())
+                        Err(ArgotError::TargetNotFound(target.into()))
                     }
                 },
             }
         } else {
-            Err("config option not found".into())
+            Err(ArgotError::OptionNotSupported(name.into()))
         }
     }
 
@@ -387,7 +387,7 @@ impl ArgParser {
         &self,
         arg: &str,
         next_arg: Option<&S>,
-    ) -> Result<(bool, HashMap<String, OptionValue>), String>
+    ) -> Result<(bool, HashMap<String, OptionValue>), ArgotError>
     where
         S: AsRef<str>,
     {
@@ -399,7 +399,7 @@ impl ArgParser {
             let name: String = String::from(flag);
             let next_value: Option<&str> = next_arg.map(|v| v.as_ref());
             let Some(entry) = self.configs.get(&name) else {
-                return Err(format!("option '{}' is not supported", name));
+                return Err(ArgotError::OptionNotSupported(name));
             };
 
             match entry {
@@ -418,7 +418,7 @@ impl ArgParser {
                         pairs.insert(name, OptionValue::Text(value.into()));
                         return Ok((true, pairs));
                     }
-                    return Err("null arg".into());
+                    return Err(ArgotError::NullArg(name));
                 },
                 ConfigEntry::Int { default } => {
                     if i < n - flag.len_utf8() {
@@ -427,7 +427,7 @@ impl ArgParser {
                             pairs.insert(name, OptionValue::Int(num));
                             return Ok((false, pairs));
                         } else {
-                            return Err("invalid int".into());
+                            return Err(ArgotError::InvalidInt(value));
                         }
                     } else if let Some(num) = default {
                         pairs.insert(name, OptionValue::Int(*num));
@@ -437,10 +437,10 @@ impl ArgParser {
                             pairs.insert(name, OptionValue::Int(num));
                             return Ok((true, pairs));
                         } else {
-                            return Err("invalid int".into());
+                            return Err(ArgotError::InvalidInt(value.into()));
                         }
                     }
-                    return Err("null int".into());
+                    return Err(ArgotError::NullInt(name));
                 },
                 ConfigEntry::Count => {
                     let default = OptionValue::Int(0);
@@ -470,7 +470,7 @@ impl ArgParser {
                         pairs.insert(name, OptionValue::List(parsed_value));
                         return Ok((true, pairs));
                     }
-                    return Err("null arg".into());
+                    return Err(ArgotError::NullArg(name));
                 },
                 ConfigEntry::Alias { target } => {
                     if let Some(target_entry) = self.configs.get(target) {
@@ -501,7 +501,7 @@ impl ArgParser {
                                     );
                                     return Ok((true, pairs));
                                 }
-                                return Err("null arg".into());
+                                return Err(ArgotError::NullArg(name));
                             },
                             ConfigEntry::Int { default } => {
                                 if i < n - flag.len_utf8() {
@@ -514,7 +514,7 @@ impl ArgParser {
                                         );
                                         return Ok((false, pairs));
                                     } else {
-                                        return Err("invalid int".into());
+                                        return Err(ArgotError::InvalidInt(value));
                                     }
                                 } else if let Some(num) = default {
                                     pairs.insert(
@@ -530,10 +530,10 @@ impl ArgParser {
                                         );
                                         return Ok((true, pairs));
                                     } else {
-                                        return Err("invalid int".into());
+                                        return Err(ArgotError::InvalidInt(value.into()));
                                     }
                                 }
-                                return Err("null int".into());
+                                return Err(ArgotError::NullInt(name));
                             },
                             ConfigEntry::Count => {
                                 let default = OptionValue::Int(0);
@@ -570,14 +570,14 @@ impl ArgParser {
                                     );
                                     return Ok((true, pairs));
                                 }
-                                return Err("null arg".into());
+                                return Err(ArgotError::NullArg(name));
                             },
                             ConfigEntry::Alias { .. } => {
-                                return Err("alias to alias".into());
+                                return Err(ArgotError::Alias2Alias);
                             },
                         }
                     } else {
-                        return Err("target option not found".into());
+                        return Err(ArgotError::TargetNotFound(target.into()));
                     }
                 },
             }
