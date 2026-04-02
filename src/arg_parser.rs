@@ -5,6 +5,10 @@ use std::io;
 use serde::Serialize;
 
 use crate::types::{ConfigEntry, ConfigEntries, LabeledEntry, OptionValue};
+use crate::errors::ArgotError;
+
+const INVALID_COUNT: &str = "non-int value stored in a count option";
+const INVALID_LIST: &str = "non-list value stored in a list option";
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -165,13 +169,15 @@ impl ArgParser {
                                         if let OptionValue::Int(new) = value {
                                             *old += new;
                                         } else {
-                                            todo!();
+                                            panic!("{}", INVALID_COUNT);
                                         };
                                     },
                                     None => {
                                         options.insert(name, value);
                                     },
-                                    _ => { todo!(); },
+                                    _ => {
+                                        panic!("{}", INVALID_COUNT);
+                                    },
                                 }
                             },
                             Some(ConfigEntry::List { .. }) => {
@@ -180,13 +186,15 @@ impl ArgParser {
                                         if let OptionValue::List(new) = value {
                                             old.extend_from_slice(&new);
                                         } else {
-                                            todo!();
+                                            panic!("{}", INVALID_LIST);
                                         };
                                     },
                                     None => {
                                         options.insert(name, value);
                                     },
-                                    _ => { todo!(); },
+                                    _ => {
+                                        panic!("{}", INVALID_LIST);
+                                    },
                                 }
                             },
                             _ => {
@@ -209,13 +217,15 @@ impl ArgParser {
                                     if let OptionValue::Int(new_value) = value {
                                         *old_value += new_value;
                                     } else {
-                                        todo!(); /* parsed value is not int */
+                                        panic!("{}", INVALID_COUNT);
                                     };
                                 },
                                 None => {
                                     options.insert(name.into(), value);
                                 },
-                                _ => { todo!() /* stored value is not int */ },
+                                _ => {
+                                    panic!("{}", INVALID_COUNT);
+                                },
                             }
                         },
                         Some(ConfigEntry::List { .. }) => {
@@ -224,13 +234,15 @@ impl ArgParser {
                                     if let OptionValue::List(new_value) = value {
                                         old_value.extend_from_slice(&new_value);
                                     } else {
-                                        todo!(); /* parsed value is not list */
+                                        panic!("{}", INVALID_LIST);
                                     };
                                 },
                                 None => {
                                     options.insert(name.into(), value);
                                 },
-                                _ => { todo!() /* stored value is not list */ },
+                                _ => {
+                                    panic!("{}", INVALID_LIST);
+                                },
                             }
                         },
                         /* other entry types */ _ => {
