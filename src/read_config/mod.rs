@@ -8,7 +8,7 @@ mod test {
 
     #[test]
     fn entries_macro() {
-        let map: HashMap<String, ConfigEntry> = entries! {
+        let map: HashMap<String, ConfigEntry> = config! {
             "quiet" => Flag,
             "q" => Alias { target: "quiet" },
             "verbose" => Count,

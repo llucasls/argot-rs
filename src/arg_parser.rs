@@ -594,7 +594,7 @@ mod test_parse {
 
     #[test]
     fn parse_input() {
-        let configs = entries! {
+        let configs = config! {
             "quiet" => Flag,
             "color" => Text,
         };
@@ -617,7 +617,7 @@ mod test_parse {
 
     #[test]
     fn parse_short_options() {
-        let configs = entries! {
+        let configs = config! {
             "c" => Text,
             "s" => Text,
             "j" => Int { default: 0 },

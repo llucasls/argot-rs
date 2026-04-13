@@ -115,7 +115,7 @@ fn main() -> ExitCode {
     let mut args = env::args_os();
     let _argv0 = args.next();
 
-    let argot_cli_configs = entries! {
+    let argot_cli_configs = config! {
         "config" => Text,
         "c" => Alias { target: "config" },
         "state-file" => Text,

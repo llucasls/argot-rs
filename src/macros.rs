@@ -1,5 +1,5 @@
 #[macro_export]
-macro_rules! entries {
+macro_rules! config {
     (
         $( $key:literal => $variant:ident $( { $( $field:ident : $value:expr ),* $(,)? } )? ),* $(,)?
     ) => {{
@@ -7,7 +7,7 @@ macro_rules! entries {
         $(
             map.insert(
                 $key.into(),
-                $crate::entries!(@build $variant $( { $( $field : $value ),* } )?)
+                $crate::config!(@build $variant $( { $( $field : $value ),* } )?)
             );
         )*
         $crate::arg_parser::ParserConfig::new($crate::types::ConfigEntries::Map(map))

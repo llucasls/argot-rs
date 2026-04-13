@@ -46,9 +46,9 @@ argot-cli = "0.1"
 ## Quick Example (Library)
 
 ```rust
-use argot_cli::entries;
+use argot_cli::config;
 
-let config = entries! {
+let config = config! {
     "quiet"       => Flag,
     "count"       => Count,
     "port"        => Int { default: 8080 },
