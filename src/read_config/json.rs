@@ -4,7 +4,7 @@ use std::io::{BufReader, self};
 use std::path::Path;
 
 use crate::types::ConfigEntries;
-use crate::arg_parser::ParserConfig;
+use crate::parser_config::ParserConfig;
 
 pub fn read_config_file<P>(filename: P) -> io::Result<ParserConfig>
 where

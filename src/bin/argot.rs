@@ -16,7 +16,7 @@ use serde_json::Value as JsonValue;
 use argot_cli::{
     ArgParser,
     OptionValue,
-    entries,
+    parser_config,
     read_json_config,
 };
 
@@ -115,7 +115,7 @@ fn main() -> ExitCode {
     let mut args = env::args_os();
     let _argv0 = args.next();
 
-    let argot_cli_configs = config! {
+    let argot_cli_configs = parser_config! {
         "config" => Text,
         "c" => Alias { target: "config" },
         "state-file" => Text,

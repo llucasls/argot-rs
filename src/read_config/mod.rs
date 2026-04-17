@@ -4,11 +4,11 @@ pub mod toml;
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
-    use crate::{entries, ConfigEntry};
+    use crate::{parser_config, ConfigEntry};
 
     #[test]
     fn entries_macro() {
-        let map: HashMap<String, ConfigEntry> = config! {
+        let map: HashMap<String, ConfigEntry> = parser_config! {
             "quiet" => Flag,
             "q" => Alias { target: "quiet" },
             "verbose" => Count,

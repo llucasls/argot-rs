@@ -7,7 +7,7 @@ use serde::Deserialize;
 use toml::from_str;
 
 use crate::types::ConfigEntries;
-use crate::arg_parser::ParserConfig;
+use crate::parser_config::ParserConfig;
 
 
 #[derive(Deserialize)]
