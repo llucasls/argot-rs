@@ -24,7 +24,7 @@ where
     let table: Table = from_str(&text)
         .map_err(|e| io::Error::new(ErrorKind::InvalidData, e))?;
 
-    ParserConfig::new(table.entries)
+    ParserConfig::new(table.entries).map_err(|res| res.into())
 }
 
 #[cfg(test)]

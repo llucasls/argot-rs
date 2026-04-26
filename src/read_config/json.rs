@@ -14,7 +14,7 @@ where
     let reader = BufReader::new(file);
     let configs: ConfigEntries = serde_json::from_reader(reader)?;
 
-    ParserConfig::new(configs)
+    ParserConfig::new(configs).map_err(|res| res.into())
 }
 
 #[cfg(test)]

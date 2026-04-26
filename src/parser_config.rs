@@ -1,6 +1,6 @@
-use std::io;
 use std::collections::HashMap;
 
+use crate::errors::ArgotError;
 use crate::types::{ConfigEntry, ConfigEntries, LabeledEntry};
 
 pub struct ParserConfig {
@@ -8,7 +8,7 @@ pub struct ParserConfig {
 }
 
 impl ParserConfig {
-    pub fn new(entries: ConfigEntries) -> io::Result<Self> {
+    pub fn new(entries: ConfigEntries) -> Result<Self, ArgotError> {
         let size: usize = entries.len();
         let mut aliases: Vec<(String, String)> = Vec::with_capacity(size);
         let mut configs = HashMap::with_capacity(size);
@@ -31,15 +31,9 @@ impl ParserConfig {
             },
         };
 
-        for (name, target) in aliases {
+        for (option, target) in aliases {
             if !configs.contains_key(&target) {
-                let kind = io::ErrorKind::InvalidData;
-                let msg = format!(
-                    "target value '{}' for option '{}' was not found",
-                    target,
-                    name
-                );
-                return Err(io::Error::new(kind, msg));
+                return Err(ArgotError::AliasTargetNotFound { option, target });
             }
         }
 
