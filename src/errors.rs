@@ -144,6 +144,6 @@ impl std::error::Error for ArgotError {}
 
 impl From<ArgotError> for io::Error {
     fn from(err: ArgotError) -> Self {
-        io::Error::new(io::ErrorKind::InvalidData, err.to_string())
+        io::Error::new(io::ErrorKind::InvalidData, err)
     }
 }
