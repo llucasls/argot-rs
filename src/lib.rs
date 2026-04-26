@@ -3,6 +3,7 @@ pub mod parser_config;
 pub mod read_config;
 pub mod types;
 pub mod errors;
+pub mod utils;
 pub mod macros;
 
 pub use arg_parser::ArgParser;
