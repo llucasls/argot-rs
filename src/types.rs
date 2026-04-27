@@ -114,6 +114,17 @@ impl ConfigEntries {
     }
 }
 
+#[cfg(test)]
+mod test_config_entries {
+    use super::*;
+
+    #[test]
+    fn detect_empty_entries() {
+        let entries = ConfigEntries::Map(HashMap::new());
+        assert!(entries.is_empty());
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(untagged))]
 pub enum OptionValue {
@@ -135,6 +146,18 @@ where
             OptionValue::Int(num) => OptionValue::Int(num + other.into()),
             _ => { unreachable!(); },
         }
+    }
+}
+
+#[cfg(test)]
+mod test_option_value {
+    use super::*;
+
+    #[test]
+    fn add_int_option_value() {
+        let value = OptionValue::Int(27);
+        let expected = OptionValue::Int(43);
+        assert_eq!(value + 16, expected);
     }
 }
 

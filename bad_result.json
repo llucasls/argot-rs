@@ -1,0 +1,9 @@
+{
+  "options": {
+    "quiet": false,
+    "verbose": 2,
+    "dry-run": false
+  },
+  "parameters": {},
+  "operands": []
+}

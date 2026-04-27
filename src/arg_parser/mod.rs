@@ -8,6 +8,9 @@ use crate::types::{ConfigEntry, OptionValue};
 use crate::errors::ArgotError;
 use crate::utils::parse_int;
 
+#[cfg(test)]
+mod test_arg_parser;
+
 const INVALID_COUNT: &str = "non-int value stored in a count option";
 const INVALID_LIST: &str = "non-list value stored in a list option";
 
@@ -88,7 +91,9 @@ fn get_opt_value(arg: &str) -> CliArg {
     } else {
         let mut parts = arg.splitn(2, '=');
         let name: String = parts.next().unwrap_or_default().to_string();
-        if let Some(value) = parts.next().map(|v: &str| v.to_string()) {
+        if name.is_empty() {
+            CliArg::Operand
+        } else if let Some(value) = parts.next().map(|v: &str| v.to_string()) {
             CliArg::Parameter(name, value)
         } else {
             CliArg::Operand
@@ -246,7 +251,7 @@ impl ArgParser {
         'option: 'result,
     {
         macro_rules! flag_option {
-            ($name:ident) => {{ Ok(($name, OptionValue::Flag)) }}
+            ($name:ident) => {{ Ok(($name, OptionValue::Flag)) }};
         }
 
         macro_rules! text_option {
@@ -262,9 +267,9 @@ impl ArgParser {
             }};
             ($name:ident, $target:ident, $value:ident, $default:ident) => {{
                 if let Some(text) = $value {
-                    Ok(($name, OptionValue::Text(text.into())))
+                    Ok(($target, OptionValue::Text(text.into())))
                 } else if let Some(text) = $default {
-                    Ok(($name, OptionValue::Text(text.into())))
+                    Ok(($target, OptionValue::Text(text.into())))
                 } else {
                     let option = String::from($name);
                     let target = Some(String::from($target));
@@ -293,10 +298,10 @@ impl ArgParser {
                     let target = Some(String::from($target));
                     Err(ArgotError::NullInt { option, target })
                 } else if $value.is_none() && $default.is_some() {
-                    Ok(($name, OptionValue::Int($default.unwrap_or_default())))
+                    Ok(($target, OptionValue::Int($default.unwrap_or_default())))
                 } else {
                     match parse_int($value.unwrap_or_default()) {
-                        Ok(num) => Ok(($name, OptionValue::Int(num))),
+                        Ok(num) => Ok(($target, OptionValue::Int(num))),
                         Err(e) => Err(e),
                     }
                 }
@@ -335,14 +340,14 @@ impl ArgParser {
             }};
             ($name:ident, $target:ident, $value:ident, $sep:ident) => {{
                 if $value.is_some() && $value.unwrap().is_empty() {
-                    Ok(($name, OptionValue::List(Vec::new())))
+                    Ok(($target, OptionValue::List(Vec::new())))
                 } else if let Some(text) = $value {
                     let sep: &str = $sep.as_deref().unwrap_or(",");
                     let list: Vec<String> = text
                         .split(sep)
                         .map(|item: &str| item.to_string())
                         .collect();
-                    Ok(($name, OptionValue::List(list)))
+                    Ok(($target, OptionValue::List(list)))
                 } else {
                     let option = String::from($name);
                     let target = Some(String::from($target));
@@ -627,72 +632,5 @@ impl ArgParser {
         }
 
         Ok((false, pairs))
-    }
-}
-
-#[cfg(test)]
-mod test_parse {
-    use super::*;
-    use crate::parser_config;
-
-    #[test]
-    fn parse_input() {
-        let configs = parser_config! {
-            "quiet" => Flag,
-            "color" => Text,
-        };
-        let parser = ArgParser::new(configs.unwrap());
-        let input = ["--quiet", "build", "CC=clang"];
-        let result = parser.parse(input).unwrap();
-
-        let options: HashMap<String, OptionValue> = HashMap::from([
-            ("quiet".to_string(), OptionValue::Flag),
-        ]);
-        let parameters: HashMap<String, String> = HashMap::from([
-            ("CC".to_string(), "clang".to_string()),
-        ]);
-        let operands = ["build"];
-
-        assert_eq!(result.options(), &options);
-        assert_eq!(result.parameters(), &parameters);
-        assert_eq!(result.operands(), &operands);
-    }
-
-    #[test]
-    fn parse_short_options() {
-        let configs = parser_config! {
-            "c" => Text,
-            "s" => Text,
-            "j" => Int { default: 0 },
-        };
-        let parser = ArgParser::new(configs.unwrap());
-        let input = ["-c./some_file.txt", "some arg"];
-        let result = parser.parse(input).unwrap();
-
-        let options: HashMap<String, OptionValue> = HashMap::from([
-            ("c".to_string(), OptionValue::Text("./some_file.txt".to_string())),
-        ]);
-        let operands = ["some arg"];
-
-        assert_eq!(result.options(), &options);
-        assert_eq!(result.operands(), &operands);
-    }
-
-    #[test]
-    fn parse_options_as_operands() {
-        let configs = parser_config! {
-            "c" => Text,
-            "s" => Text,
-            "j" => Int { default: 0 },
-        };
-        let parser = ArgParser::new(configs.unwrap());
-        let input = ["--", "-c./some_file.txt", "-ssome arg"];
-        let result = parser.parse(input).unwrap();
-
-        let options = HashMap::new();
-        let operands = ["-c./some_file.txt", "-ssome arg"];
-
-        assert_eq!(result.options(), &options);
-        assert_eq!(result.operands(), &operands);
     }
 }
