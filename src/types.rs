@@ -133,9 +133,7 @@ where
     fn add(self, other: T) -> Self {
         match self {
             OptionValue::Int(num) => OptionValue::Int(num + other.into()),
-            _ => {
-                panic!("attempt to add integer to non-int OptionValue variant");
-            },
+            _ => { unreachable!(); },
         }
     }
 }
