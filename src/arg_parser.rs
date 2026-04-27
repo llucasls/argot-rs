@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 #[cfg(feature = "serde")]
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 use crate::parser_config::ParserConfig;
 use crate::types::{ConfigEntry, OptionValue};
@@ -12,11 +12,30 @@ const INVALID_COUNT: &str = "non-int value stored in a count option";
 const INVALID_LIST: &str = "non-list value stored in a list option";
 
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ParseResult {
     options: HashMap<String, OptionValue>,
     parameters: HashMap<String, String>,
     operands: Vec<String>,
+}
+
+#[cfg(test)]
+mod test_parse_result {
+    use std::fs::File;
+    use std::io::BufReader;
+    use serde_json::Error;
+    use super::*;
+
+    #[test]
+    fn parse_bad_result() {
+        let file = File::open("bad_result.json").unwrap();
+        let reader = BufReader::new(file);
+        let res: Result<ParseResult, Error> = serde_json::from_reader(reader);
+        let err = res.unwrap_err();
+
+        let msg = "data did not match any variant of untagged enum OptionValue at line 3 column 19";
+        assert_eq!(format!("{}", err), msg);
+    }
 }
 
 impl ParseResult {
@@ -624,19 +643,19 @@ mod test_parse {
         };
         let parser = ArgParser::new(configs.unwrap());
         let input = ["--quiet", "build", "CC=clang"];
-        let result = parser.parse(input);
+        let result = parser.parse(input).unwrap();
 
-        let operands = ["build"];
         let options: HashMap<String, OptionValue> = HashMap::from([
             ("quiet".to_string(), OptionValue::Flag),
         ]);
         let parameters: HashMap<String, String> = HashMap::from([
             ("CC".to_string(), "clang".to_string()),
         ]);
+        let operands = ["build"];
 
-        assert_eq!(result.clone().unwrap().options, options);
-        assert_eq!(result.clone().unwrap().parameters, parameters);
-        assert_eq!(result.clone().unwrap().operands, operands);
+        assert_eq!(result.options(), &options);
+        assert_eq!(result.parameters(), &parameters);
+        assert_eq!(result.operands(), &operands);
     }
 
     #[test]
@@ -648,14 +667,32 @@ mod test_parse {
         };
         let parser = ArgParser::new(configs.unwrap());
         let input = ["-c./some_file.txt", "some arg"];
-        let result = parser.parse(input);
+        let result = parser.parse(input).unwrap();
 
-        let operands = ["some arg"];
         let options: HashMap<String, OptionValue> = HashMap::from([
             ("c".to_string(), OptionValue::Text("./some_file.txt".to_string())),
         ]);
+        let operands = ["some arg"];
 
-        assert_eq!(result.clone().unwrap().options, options);
-        assert_eq!(result.clone().unwrap().operands, operands);
+        assert_eq!(result.options(), &options);
+        assert_eq!(result.operands(), &operands);
+    }
+
+    #[test]
+    fn parse_options_as_operands() {
+        let configs = parser_config! {
+            "c" => Text,
+            "s" => Text,
+            "j" => Int { default: 0 },
+        };
+        let parser = ArgParser::new(configs.unwrap());
+        let input = ["--", "-c./some_file.txt", "-ssome arg"];
+        let result = parser.parse(input).unwrap();
+
+        let options = HashMap::new();
+        let operands = ["-c./some_file.txt", "-ssome arg"];
+
+        assert_eq!(result.options(), &options);
+        assert_eq!(result.operands(), &operands);
     }
 }
