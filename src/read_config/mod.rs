@@ -4,11 +4,11 @@ pub mod toml;
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
-    use crate::{parser_config, ConfigEntry};
+    use crate::{parser_config, ParserConfig, ConfigEntry, ConfigEntries};
 
     #[test]
     fn entries_macro() {
-        let map: HashMap<String, ConfigEntry> = parser_config! {
+        let configs: ParserConfig = parser_config! {
             "quiet" => Flag,
             "q" => Alias { target: "quiet" },
             "verbose" => Count,
@@ -18,9 +18,9 @@ mod test {
             "j" => Int { default: 0 },
             "browser" => Text,
             "hints" => List,
-        }.unwrap().into_inner();
+        }.unwrap();
 
-        let expected = HashMap::from([
+        let entries = HashMap::from([
             ("quiet".to_string(), ConfigEntry::Flag),
             ("q".to_string(), ConfigEntry::Alias { target: "quiet".to_string() }),
             ("verbose".to_string(), ConfigEntry::Count),
@@ -31,7 +31,8 @@ mod test {
             ("browser".to_string(), ConfigEntry::Text { default: None }),
             ("hints".to_string(), ConfigEntry::List { sep: None }),
         ]);
+        let expected = ParserConfig::new(ConfigEntries::Map(entries)).unwrap();
 
-        assert_eq!(map, expected);
+        assert_eq!(configs, expected);
     }
 }

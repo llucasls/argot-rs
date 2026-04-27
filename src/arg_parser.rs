@@ -34,7 +34,7 @@ impl ParseResult {
 }
 
 pub struct ArgParser {
-    configs: HashMap<String, ConfigEntry>,
+    configs: ParserConfig,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -79,7 +79,6 @@ fn get_opt_value(arg: &str) -> CliArg {
 
 impl ArgParser {
     pub fn new(configs: ParserConfig) -> Self {
-        let configs = configs.into_inner();
         Self { configs }
     }
 

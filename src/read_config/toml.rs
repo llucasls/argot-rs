@@ -36,8 +36,7 @@ mod test_toml {
     #[test]
     fn read_toml_table() {
         let configs: ParserConfig = read_config_file("config_table.toml").unwrap();
-        let map: HashMap<String, ConfigEntry> = configs.into_inner();
-        let expected = HashMap::from([
+        let entries = HashMap::from([
             ("quiet".to_string(), ConfigEntry::Flag),
             ("q".to_string(), ConfigEntry::Alias { target: "quiet".to_string() }),
             ("verbose".to_string(), ConfigEntry::Count),
@@ -48,15 +47,15 @@ mod test_toml {
             ("browser".to_string(), ConfigEntry::Text { default: None }),
             ("hints".to_string(), ConfigEntry::List { sep: None }),
         ]);
+        let expected = ParserConfig::new(ConfigEntries::Map(entries)).unwrap();
 
-        assert_eq!(map, expected);
+        assert_eq!(configs, expected);
     }
 
     #[test]
     fn read_toml_array() {
         let configs: ParserConfig = read_config_file("config_array.toml").unwrap();
-        let map: HashMap<String, ConfigEntry> = configs.into_inner();
-        let expected = HashMap::from([
+        let entries = HashMap::from([
             ("quiet".to_string(), ConfigEntry::Flag),
             ("q".to_string(), ConfigEntry::Alias { target: "quiet".to_string() }),
             ("verbose".to_string(), ConfigEntry::Count),
@@ -65,7 +64,8 @@ mod test_toml {
             ("n".to_string(), ConfigEntry::Alias { target: "dry-run".to_string() }),
             ("j".to_string(), ConfigEntry::Int { default: Some(0) }),
         ]);
+        let expected = ParserConfig::new(ConfigEntries::Map(entries)).unwrap();
 
-        assert_eq!(map, expected);
+        assert_eq!(configs, expected);
     }
 }
