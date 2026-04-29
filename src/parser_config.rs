@@ -38,9 +38,7 @@ impl ParserConfig {
                 None => {
                     return Err(AliasTargetNotFound { option, target });
                 },
-                Some(ConfigEntry::Alias { target: t }) => {
-                    let option = target;
-                    let target = t.to_string();
+                Some(ConfigEntry::Alias { .. }) => {
                     return Err(InvalidAliasTarget { option, target });
                 },
                 _ => {}
