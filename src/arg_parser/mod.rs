@@ -446,29 +446,22 @@ impl ArgParser {
                 ConfigEntry::Int { default } => {
                     if i < n - flag.len_utf8() {
                         let value = arg[i + flag.len_utf8()..n].to_string();
-                        if let Ok(num) = value.parse() {
-                            pairs.insert(name, OptionValue::Int(num));
-                            return Ok((false, pairs));
-                        } else {
-                            return Err(ArgotError::InvalidInt { value });
-                        }
+                        let num = parse_int(&value)?;
+                        pairs.insert(name, OptionValue::Int(num));
+                        return Ok((false, pairs));
                     } else if let Some(num) = default {
                         pairs.insert(name, OptionValue::Int(*num));
                         return Ok((false, pairs));
                     } else if let Some(value) = next_value {
-                        if let Ok(num) = value.parse() {
-                            pairs.insert(name, OptionValue::Int(num));
-                            return Ok((true, pairs));
-                        } else {
-                            return Err(ArgotError::InvalidInt {
-                                value: value.to_string()
-                            });
-                        }
+                        let num = parse_int(value)?;
+                        pairs.insert(name, OptionValue::Int(num));
+                        return Ok((true, pairs));
+                    } else {
+                        return Err(ArgotError::NullInt {
+                            option: name,
+                            target: None,
+                        });
                     }
-                    return Err(ArgotError::NullInt {
-                        option: name,
-                        target: None,
-                    });
                 },
                 ConfigEntry::Count => {
                     let default = OptionValue::Int(0);
@@ -541,17 +534,9 @@ impl ArgParser {
                                 if i < n - flag.len_utf8() {
                                     let value = arg[i + flag.len_utf8()..n]
                                         .to_string();
-                                    if let Ok(num) = value.parse() {
-                                        pairs.insert(
-                                            target,
-                                            OptionValue::Int(num),
-                                        );
-                                        return Ok((false, pairs));
-                                    } else {
-                                        return Err(ArgotError::InvalidInt {
-                                            value
-                                        });
-                                    }
+                                    let num = parse_int(&value)?;
+                                    pairs.insert(target, OptionValue::Int(num));
+                                    return Ok((false, pairs));
                                 } else if let Some(num) = default {
                                     pairs.insert(
                                         target,
@@ -559,22 +544,15 @@ impl ArgParser {
                                     );
                                     return Ok((false, pairs));
                                 } else if let Some(value) = next_value {
-                                    if let Ok(num) = value.parse() {
-                                        pairs.insert(
-                                            target,
-                                            OptionValue::Int(num),
-                                        );
-                                        return Ok((true, pairs));
-                                    } else {
-                                        return Err(ArgotError::InvalidInt {
-                                            value: value.to_string()
-                                        });
-                                    }
+                                    let num = parse_int(value)?;
+                                    pairs.insert(target, OptionValue::Int(num));
+                                    return Ok((true, pairs));
+                                } else {
+                                    return Err(ArgotError::NullInt {
+                                        option: name,
+                                        target: Some(target),
+                                    });
                                 }
-                                return Err(ArgotError::NullInt {
-                                    option: name,
-                                    target: Some(target),
-                                });
                             },
                             ConfigEntry::Count => {
                                 let default = OptionValue::Int(0);

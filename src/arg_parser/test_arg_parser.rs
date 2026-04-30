@@ -529,11 +529,11 @@ fn return_error_on_int_option_unsafe_value() {
 
     let input = ["-i", "18446744073709551616"];
     let result: ArgotError = parser.parse(input).unwrap_err();
-    let expected = ArgotError::InvalidInt {
+    let expected = ArgotError::UnsafeInteger {
         value: "18446744073709551616".to_string(),
     };
 
     assert_eq!(result, expected);
 
-    assert_eq!(format!("{}", result), "'18446744073709551616' is not a valid integer");
+    assert_eq!(format!("{}", result), "'18446744073709551616' is out of range for a signed 64-bit integer");
 }

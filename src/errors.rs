@@ -24,7 +24,7 @@ impl fmt::Display for ArgotError {
             ArgotError::InvalidInt { value } =>
                 write!(f, "'{}' is not a valid integer", value),
             ArgotError::UnsafeInteger { value } =>
-                write!(f, "'{}' is out of range for a 64-bit integer", value),
+                write!(f, "'{}' is out of range for a signed 64-bit integer", value),
             ArgotError::NullArg { option, target } => {
                 match target {
                     Some(target) => {
