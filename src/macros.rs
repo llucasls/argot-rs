@@ -7,49 +7,59 @@ macro_rules! parser_config {
         $(
             map.insert(
                 $key.into(),
-                $crate::parser_config!(@build $variant $( { $( $field : $value ),* } )?)
+                $crate::parser_config!(@build $key, $variant $( { $( $field : $value ),* } )?)
             );
         )*
         $crate::parser_config::ParserConfig::new($crate::types::ConfigEntries::Map(map))
     }};
 
-    (@build Flag $({})?) => {
+    (@build $key:literal, Flag $({})?) => {
         $crate::types::ConfigEntry::Flag
     };
 
-    (@build Text $({})?) => {
+    (@build $key:literal, Text $({})?) => {
         $crate::types::ConfigEntry::Text { default: None }
     };
 
-    (@build Text { default: $val:expr }) => {
+    (@build $key:literal, Text { default: $val:expr }) => {
         $crate::types::ConfigEntry::Text { default: Some($val.into()) }
     };
 
-    (@build Int $({})?) => {
+    (@build $key:literal, Int $({})?) => {
         $crate::types::ConfigEntry::Int { default: None }
     };
 
-    (@build Int { default: $val:expr }) => {
+    (@build $key:literal, Int { default: $val:expr }) => {
         $crate::types::ConfigEntry::Int { default: Some($val) }
     };
 
-    (@build Count $({})?) => {
+    (@build $key:literal, Count $({})?) => {
         $crate::types::ConfigEntry::Count
     };
 
-    (@build List $({})?) => {
+    (@build $key:literal, List $({})?) => {
         $crate::types::ConfigEntry::List { sep: None }
     };
 
-    (@build List { sep: $val:expr }) => {
+    (@build $key:literal, List { sep: $val:expr }) => {
         $crate::types::ConfigEntry::List { sep: Some($val.into()) }
     };
 
-    (@build Alias { target: $val:expr }) => {
+    (@build $key:literal, Alias { target: $val:expr }) => {
         $crate::types::ConfigEntry::Alias { target: $val.into() }
     };
 
-    (@build $unknown:ident $($rest:tt)*) => {
-        compile_error!(concat!("unsupported entry type: ", stringify!($unknown)));
+    (@build $key:literal, Alias $({})?) => {
+        compile_error!(
+            concat!("Alias option \"",
+                $key,
+                "\" requires a target"))
+    };
+
+    (@build $key:literal, $unknown:ident $($rest:tt)*) => {
+        compile_error!(
+            concat!("unsupported entry type: ",
+                stringify!($unknown),
+                "\nvalid options must be one of: Flag, Text, Int, Count, List, Alias"))
     };
 }
