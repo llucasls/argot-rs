@@ -125,6 +125,21 @@ mod test_config_entries {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum CliArg {
+    /// A GNU-style long option
+    Long { name: String, value: Option<String> },
+
+    /// A Unix-style short option
+    Short { flags: String },
+
+    /// A name=value parameter assignment
+    Parameter(String, String),
+
+    /// A positional argument
+    Operand,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(untagged))]
 pub enum OptionValue {
@@ -617,5 +632,54 @@ mod test_option_value_deserialize {
         ]);
 
         assert_eq!(output, expected);
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct ParseResult {
+    options: HashMap<String, OptionValue>,
+    parameters: HashMap<String, String>,
+    operands: Vec<String>,
+}
+
+#[cfg(test)]
+mod test_parse_result {
+    use std::fs::File;
+    use std::io::BufReader;
+    use serde_json::Error;
+    use super::*;
+
+    #[test]
+    fn parse_bad_result() {
+        let file = File::open("bad_result.json").unwrap();
+        let reader = BufReader::new(file);
+        let res: Result<ParseResult, Error> = serde_json::from_reader(reader);
+        let err = res.unwrap_err();
+
+        let msg = "data did not match any variant of untagged enum OptionValue at line 3 column 19";
+        assert_eq!(format!("{}", err), msg);
+    }
+}
+
+impl ParseResult {
+    pub fn new(
+        options: HashMap<String, OptionValue>,
+        parameters: HashMap<String, String>,
+        operands: Vec<String>,
+    ) -> Self {
+        Self { options, parameters, operands }
+    }
+
+    pub fn options(&self) -> &HashMap<String, OptionValue> {
+        &self.options
+    }
+
+    pub fn parameters(&self) -> &HashMap<String, String> {
+        &self.parameters
+    }
+
+    pub fn operands(&self) -> &[String] {
+        &self.operands
     }
 }

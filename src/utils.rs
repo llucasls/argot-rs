@@ -1,6 +1,34 @@
 use std::num::IntErrorKind;
 
 use crate::errors::ArgotError;
+use crate::types::CliArg;
+
+pub fn get_opt_value(arg: &str) -> CliArg {
+    if arg == "--" {
+        CliArg::Operand
+    } else if let Some(stripped) = arg.strip_prefix("--") {
+        let mut parts = stripped.splitn(2, '=');
+        let name = parts.next().unwrap_or_default().to_string();
+        let value = parts.next().map(|v| v.to_string());
+        if name.is_empty() {
+            CliArg::Operand
+        } else {
+            CliArg::Long { name, value }
+        }
+    } else if let Some(flags) = arg.strip_prefix('-') {
+        CliArg::Short { flags: flags.to_string() }
+    } else {
+        let mut parts = arg.splitn(2, '=');
+        let name: String = parts.next().unwrap_or_default().to_string();
+        if name.is_empty() {
+            CliArg::Operand
+        } else if let Some(value) = parts.next().map(|v: &str| v.to_string()) {
+            CliArg::Parameter(name, value)
+        } else {
+            CliArg::Operand
+        }
+    }
+}
 
 pub fn parse_int(value: &str) -> Result<i64, ArgotError> {
     match value.parse() {

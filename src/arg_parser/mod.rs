@@ -1,12 +1,9 @@
 use std::collections::HashMap;
 
-#[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
-
 use crate::parser_config::ParserConfig;
-use crate::types::{ConfigEntry, OptionValue};
+use crate::types::{CliArg, ConfigEntry, OptionValue, ParseResult};
 use crate::errors::ArgotError;
-use crate::utils::parse_int;
+use crate::utils::{get_opt_value, parse_int};
 
 #[cfg(test)]
 mod test_arg_parser;
@@ -14,91 +11,8 @@ mod test_arg_parser;
 const INVALID_COUNT: &str = "non-int value stored in a count option";
 const INVALID_LIST: &str = "non-list value stored in a list option";
 
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct ParseResult {
-    options: HashMap<String, OptionValue>,
-    parameters: HashMap<String, String>,
-    operands: Vec<String>,
-}
-
-#[cfg(test)]
-mod test_parse_result {
-    use std::fs::File;
-    use std::io::BufReader;
-    use serde_json::Error;
-    use super::*;
-
-    #[test]
-    fn parse_bad_result() {
-        let file = File::open("bad_result.json").unwrap();
-        let reader = BufReader::new(file);
-        let res: Result<ParseResult, Error> = serde_json::from_reader(reader);
-        let err = res.unwrap_err();
-
-        let msg = "data did not match any variant of untagged enum OptionValue at line 3 column 19";
-        assert_eq!(format!("{}", err), msg);
-    }
-}
-
-impl ParseResult {
-    pub fn options(&self) -> &HashMap<String, OptionValue> {
-        &self.options
-    }
-
-    pub fn parameters(&self) -> &HashMap<String, String> {
-        &self.parameters
-    }
-
-    pub fn operands(&self) -> &[String] {
-        &self.operands
-    }
-}
-
 pub struct ArgParser {
     configs: ParserConfig,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum CliArg {
-    /// A GNU-style long option
-    Long { name: String, value: Option<String> },
-
-    /// A Unix-style short option
-    Short { flags: String },
-
-    /// A name=value parameter assignment
-    Parameter(String, String),
-
-    /// A positional argument
-    Operand,
-}
-
-fn get_opt_value(arg: &str) -> CliArg {
-    if arg == "--" {
-        CliArg::Operand
-    } else if let Some(stripped) = arg.strip_prefix("--") {
-        let mut parts = stripped.splitn(2, '=');
-        let name = parts.next().unwrap_or_default().to_string();
-        let value = parts.next().map(|v| v.to_string());
-        if name.is_empty() {
-            CliArg::Operand
-        } else {
-            CliArg::Long { name, value }
-        }
-    } else if let Some(flags) = arg.strip_prefix('-') {
-        CliArg::Short { flags: flags.to_string() }
-    } else {
-        let mut parts = arg.splitn(2, '=');
-        let name: String = parts.next().unwrap_or_default().to_string();
-        if name.is_empty() {
-            CliArg::Operand
-        } else if let Some(value) = parts.next().map(|v: &str| v.to_string()) {
-            CliArg::Parameter(name, value)
-        } else {
-            CliArg::Operand
-        }
-    }
 }
 
 impl ArgParser {
@@ -234,11 +148,7 @@ impl ArgParser {
             }
         }
 
-        Ok(ParseResult {
-            options,
-            parameters,
-            operands,
-        })
+        Ok(ParseResult::new(options, parameters, operands))
     }
 
     fn parse_long_option<'parser, 'option, 'result>(
