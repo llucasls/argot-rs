@@ -4,7 +4,7 @@ use crate::errors::ArgotError;
 use crate::types::CliArg;
 
 pub fn get_opt_value(arg: &str) -> CliArg {
-    if arg == "--" {
+    if arg == "-" || arg == "--" {
         CliArg::Operand
     } else if let Some(stripped) = arg.strip_prefix("--") {
         let mut parts = stripped.splitn(2, '=');
