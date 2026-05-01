@@ -537,3 +537,32 @@ fn return_error_on_int_option_unsafe_value() {
 
     assert_eq!(format!("{}", result), "'18446744073709551616' is out of range for a signed 64-bit integer");
 }
+
+#[test]
+fn sum_count_option() {
+    let parser: &ArgParser = &ARG_PARSER_CELL;
+    let input = ["--loglevel=2", "--loglevel=3"];
+    let result: ParseResult = parser.parse(input).unwrap();
+
+    let expected = HashMap::from([
+        ("loglevel".to_string(), OptionValue::Int(5))
+    ]);
+
+    assert_mapping_equals(result.options(), &expected);
+}
+
+#[test]
+fn concatenate_list_option() {
+    let parser: &ArgParser = &ARG_PARSER_CELL;
+    let input = ["--tasks=test", "--tasks=build"];
+    let result: ParseResult = parser.parse(input).unwrap();
+
+    let expected = HashMap::from([
+        ("tasks".to_string(), OptionValue::List(vec![
+             "test".to_string(),
+             "build".to_string()
+        ]))
+    ]);
+
+    assert_mapping_equals(result.options(), &expected);
+}
