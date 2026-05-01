@@ -46,7 +46,7 @@ pub fn parse_int(value: &str) -> Result<i64, ArgotError> {
 }
 
 #[cfg(test)]
-mod test_utils {
+mod test_parse_int {
     use super::*;
 
     #[test]
@@ -117,5 +117,79 @@ mod test_utils {
 
         assert_eq!(error, expected);
         assert_eq!(format!("{}", error), format!("{}", expected));
+    }
+}
+
+#[cfg(test)]
+mod test_get_opt_value {
+    use super::*;
+
+    #[test]
+    fn return_operand_on_single_dash() {
+        let input = "-";
+        let output = get_opt_value(input);
+        let expected = CliArg::Operand;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn return_operand_on_double_dash() {
+        let input = "--";
+        let output = get_opt_value(input);
+        let expected = CliArg::Operand;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn return_long_option() {
+        let input = "--user=jim";
+        let output = get_opt_value(input);
+        let expected = CliArg::Long {
+            name: "user".to_string(),
+            value: Some("jim".to_string()),
+        };
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn return_short_option() {
+        let input = "-ubob";
+        let output = get_opt_value(input);
+        let expected = CliArg::Short {
+            flags: "ubob".to_string()
+        };
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn return_parameter() {
+        let input = "name=alice";
+        let output = get_opt_value(input);
+        let expected = CliArg::Parameter("name".into(), "alice".into());
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn return_operand_on_empty_long_option_name() {
+        let input = "--=jim";
+        let output = get_opt_value(input);
+        let expected = CliArg::Operand;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn return_operand_on_empty_parameter_name() {
+        let input = "=bianca";
+        let output = get_opt_value(input);
+        let expected = CliArg::Operand;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn return_operand() {
+        let input = "maria";
+        let output = get_opt_value(input);
+        let expected = CliArg::Operand;
+        assert_eq!(output, expected);
     }
 }
