@@ -150,6 +150,53 @@ pub enum OptionValue {
     List(Vec<String>),
 }
 
+impl OptionValue {
+    pub fn unwrap_text(self) -> String {
+        match self {
+            Self::Flag => {
+                panic!("called `OptionValue::unwrap_text` on a Flag value");
+            },
+            Self::Text(text) => text,
+            Self::Int(_) => {
+                panic!("called `OptionValue::unwrap_text` on an Int value: {:?}", self);
+            },
+            Self::List(_) => {
+                panic!("called `OptionValue::unwrap_text` on a List value: {:?}", self);
+            },
+        }
+    }
+
+    pub fn unwrap_int(self) -> i64 {
+        match self {
+            Self::Flag => {
+                panic!("called `OptionValue::unwrap_int` on a Flag value");
+            },
+            Self::Text(_) => {
+                panic!("called `OptionValue::unwrap_int` on a Text value: {:?}", self);
+            },
+            Self::Int(int) => int,
+            Self::List(_) => {
+                panic!("called `OptionValue::unwrap_int` on a List value: {:?}", self);
+            },
+        }
+    }
+
+    pub fn unwrap_list(self) -> Vec<String> {
+        match self {
+            Self::Flag => {
+                panic!("called `OptionValue::unwrap_list` on a Flag value");
+            },
+            Self::Text(_) => {
+                panic!("called `OptionValue::unwrap_list` on a Text value: {:?}", self);
+            },
+            Self::Int(_) => {
+                panic!("called `OptionValue::unwrap_list` on an Int value: {:?}", self);
+            },
+            Self::List(list) => list,
+        }
+    }
+}
+
 impl<T> Add<T> for OptionValue
 where
     T: Into<i64>,

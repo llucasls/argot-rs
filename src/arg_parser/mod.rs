@@ -55,11 +55,8 @@ impl ArgParser {
                             Some(ConfigEntry::Count) => {
                                 match options.get_mut(&name) {
                                     Some(OptionValue::Int(old)) => {
-                                        if let OptionValue::Int(new) = value {
-                                            *old += new;
-                                        } else {
-                                            panic!("{}", INVALID_COUNT);
-                                        };
+                                        let new = value.unwrap_int();
+                                        *old += new;
                                     },
                                     None => {
                                         options.insert(name, value);
@@ -72,11 +69,8 @@ impl ArgParser {
                             Some(ConfigEntry::List { .. }) => {
                                 match options.get_mut(&name) {
                                     Some(OptionValue::List(old)) => {
-                                        if let OptionValue::List(new) = value {
-                                            old.extend_from_slice(&new);
-                                        } else {
-                                            panic!("{}", INVALID_LIST);
-                                        };
+                                        let new = value.unwrap_list();
+                                        old.extend_from_slice(&new);
                                     },
                                     None => {
                                         options.insert(name, value);
@@ -103,11 +97,8 @@ impl ArgParser {
                         Some(ConfigEntry::Count) => {
                             match options.get_mut(name) {
                                 Some(OptionValue::Int(old)) => {
-                                    if let OptionValue::Int(new) = value {
-                                        *old += new;
-                                    } else {
-                                        panic!("{}", INVALID_COUNT);
-                                    };
+                                    let new = value.unwrap_int();
+                                    *old += new;
                                 },
                                 None => {
                                     options.insert(name.into(), value);
@@ -120,11 +111,8 @@ impl ArgParser {
                         Some(ConfigEntry::List { .. }) => {
                             match options.get_mut(name) {
                                 Some(OptionValue::List(old)) => {
-                                    if let OptionValue::List(new) = value {
-                                        old.extend_from_slice(&new);
-                                    } else {
-                                        panic!("{}", INVALID_LIST);
-                                    };
+                                    let new = value.unwrap_list();
+                                    old.extend_from_slice(&new);
                                 },
                                 None => {
                                     options.insert(name.into(), value);
