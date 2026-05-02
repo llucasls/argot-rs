@@ -221,6 +221,102 @@ mod test_option_value {
         let expected = OptionValue::Int(43);
         assert_eq!(value + 16, expected);
     }
+
+    #[test]
+    fn test_unwrap_text() {
+        let value = OptionValue::Text("doc.txt".to_string());
+        let expected = "doc.txt".to_string();
+        assert_eq!(value.unwrap_text(), expected);
+    }
+
+    #[test]
+    fn test_unwrap_int() {
+        let value = OptionValue::Int(14);
+        let expected = 14;
+        assert_eq!(value.unwrap_int(), expected);
+    }
+
+    #[test]
+    fn test_unwrap_list() {
+        let value = OptionValue::List(vec![
+            "build".to_string(),
+            "test".to_string(),
+        ]);
+        let expected = vec![
+            "build".to_string(),
+            "test".to_string(),
+        ];
+        assert_eq!(value.unwrap_list(), expected);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_unwrap_text_on_flag_value() {
+        let value = OptionValue::Flag;
+        value.unwrap_text();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_unwrap_text_on_int_value() {
+        let value = OptionValue::Int(14);
+        value.unwrap_text();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_unwrap_text_on_list_value() {
+        let value = OptionValue::List(vec![
+            "build".to_string(),
+            "test".to_string(),
+        ]);
+        value.unwrap_text();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_unwrap_int_on_flag_value() {
+        let value = OptionValue::Flag;
+        value.unwrap_int();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_unwrap_int_on_text_value() {
+        let value = OptionValue::Text("doc.txt".to_string());
+        value.unwrap_int();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_unwrap_int_on_list_value() {
+        let value = OptionValue::List(vec![
+            "build".to_string(),
+            "test".to_string(),
+        ]);
+        value.unwrap_int();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_unwrap_list_on_flag_value() {
+        let value = OptionValue::Flag;
+        value.unwrap_list();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_unwrap_list_on_text_value() {
+        let value = OptionValue::Text("doc.txt".to_string());
+        value.unwrap_list();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_unwrap_list_on_int_value() {
+        let value = OptionValue::Int(14);
+        value.unwrap_list();
+    }
 }
 
 #[cfg(feature = "serde")]

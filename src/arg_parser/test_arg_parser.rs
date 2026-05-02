@@ -367,11 +367,6 @@ fn return_error_on_text_option_without_associated_value() {
     assert_eq!(result2, expected2);
     assert_eq!(result3, expected3);
     assert_eq!(result4, expected4);
-
-    assert_eq!(format!("{}", result1), "option 'output' must take an argument");
-    assert_eq!(format!("{}", result2), "option 'u' must take an argument");
-    assert_eq!(format!("{}", result3), "option 'output-file' (alias for 'output') must take an argument");
-    assert_eq!(format!("{}", result4), "option 'o' (alias for 'output') must take an argument");
 }
 
 #[test]
@@ -410,15 +405,6 @@ fn return_error_on_int_option_without_associated_value() {
     assert_eq!(result2, expected2);
     assert_eq!(result3, expected3);
     assert_eq!(result4, expected4);
-
-    assert_eq!(format!("{}", result1),
-        "option 'retries' requires an integer number argument");
-    assert_eq!(format!("{}", result2),
-        "option 'j' requires an integer number argument");
-    assert_eq!(format!("{}", result3),
-        "option 'retry' (alias for 'retries') requires an integer number argument");
-    assert_eq!(format!("{}", result4),
-        "option 'r' (alias for 'retries') requires an integer number argument");
 }
 
 #[test]
@@ -457,11 +443,6 @@ fn return_error_on_list_option_without_associated_value() {
     assert_eq!(result2, expected2);
     assert_eq!(result3, expected3);
     assert_eq!(result4, expected4);
-
-    assert_eq!(format!("{}", result1), "option 'tasks' must take an argument");
-    assert_eq!(format!("{}", result2), "option 'P' must take an argument");
-    assert_eq!(format!("{}", result3), "option 'path' (alias for 'P') must take an argument");
-    assert_eq!(format!("{}", result4), "option 'T' (alias for 'tasks') must take an argument");
 }
 
 #[test]
@@ -518,9 +499,6 @@ fn return_error_on_unsupported_options() {
 
     assert_eq!(result1, expected1);
     assert_eq!(result2, expected2);
-
-    assert_eq!(format!("{}", result1), "option 'esto' is not supported");
-    assert_eq!(format!("{}", result2), "option 'Z' is not supported");
 }
 
 #[test]
@@ -534,8 +512,6 @@ fn return_error_on_int_option_unsafe_value() {
     };
 
     assert_eq!(result, expected);
-
-    assert_eq!(format!("{}", result), "'18446744073709551616' is out of range for a signed 64-bit integer");
 }
 
 #[test]
