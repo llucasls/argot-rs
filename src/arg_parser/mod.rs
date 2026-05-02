@@ -148,156 +148,127 @@ impl ArgParser {
         'parser: 'result,
         'option: 'result,
     {
-        macro_rules! flag_option {
-            ($name:ident) => {{ Ok(($name, OptionValue::Flag)) }};
-        }
-
-        macro_rules! text_option {
-            ($name:ident, $value:ident, $default:ident) => {{
-                if let Some(text) = $value {
-                    Ok(($name, OptionValue::Text(text.into())))
-                } else if let Some(text) = $default {
-                    Ok(($name, OptionValue::Text(text.into())))
-                } else {
-                    let option = String::from($name);
-                    Err(ArgotError::NullArg { option, target: None })
-                }
-            }};
-            ($name:ident, $target:ident, $value:ident, $default:ident) => {{
-                if let Some(text) = $value {
-                    Ok(($target, OptionValue::Text(text.into())))
-                } else if let Some(text) = $default {
-                    Ok(($target, OptionValue::Text(text.into())))
-                } else {
-                    let option = String::from($name);
-                    let target = Some(String::from($target));
-                    Err(ArgotError::NullArg { option, target })
-                }
-            }}
-        }
-
-        macro_rules! int_option {
-            ($name:ident, $value:ident, $default:ident) => {{
-                if $value.is_none() && $default.is_none() {
-                    let option = String::from($name);
-                    Err(ArgotError::NullInt { option, target: None })
-                } else if $value.is_none() && $default.is_some() {
-                    Ok(($name, OptionValue::Int($default.unwrap_or_default())))
-                } else {
-                    match parse_int($value.unwrap_or_default()) {
-                        Ok(num) => Ok(($name, OptionValue::Int(num))),
-                        Err(e) => Err(e),
-                    }
-                }
-            }};
-            ($name:ident, $target:ident, $value:ident, $default:ident) => {{
-                if $value.is_none() && $default.is_none() {
-                    let option = String::from($name);
-                    let target = Some(String::from($target));
-                    Err(ArgotError::NullInt { option, target })
-                } else if $value.is_none() && $default.is_some() {
-                    Ok(($target, OptionValue::Int($default.unwrap_or_default())))
-                } else {
-                    match parse_int($value.unwrap_or_default()) {
-                        Ok(num) => Ok(($target, OptionValue::Int(num))),
-                        Err(e) => Err(e),
-                    }
-                }
-            }}
-        }
-
-        macro_rules! count_option {
-            ($name:ident, $val:ident) => {{
-                if $val.is_some() && $val.unwrap().parse::<i64>().is_err() {
-                    let option = String::from($name);
-                    Err(ArgotError::NullInt { option, target: None })
-                } else if let Some(text) = $val {
-                    let num = text.parse().unwrap();
-                    Ok(($name, OptionValue::Int(num)))
-                } else {
-                    Ok(($name, OptionValue::Int(1)))
-                }
-            }}
-        }
-
-        macro_rules! list_option {
-            ($name:ident, $value:ident, $sep:ident) => {{
-                if $value.is_some() && $value.unwrap().is_empty() {
-                    Ok(($name, OptionValue::List(Vec::new())))
-                } else if let Some(text) = $value {
-                    let sep: &str = $sep.as_deref().unwrap_or(",");
-                    let list: Vec<String> = text
-                        .split(sep)
-                        .map(|item: &str| item.to_string())
-                        .collect();
-                    Ok(($name, OptionValue::List(list)))
-                } else {
-                    let option = String::from($name);
-                    Err(ArgotError::NullArg { option, target: None })
-                }
-            }};
-            ($name:ident, $target:ident, $value:ident, $sep:ident) => {{
-                if $value.is_some() && $value.unwrap().is_empty() {
-                    Ok(($target, OptionValue::List(Vec::new())))
-                } else if let Some(text) = $value {
-                    let sep: &str = $sep.as_deref().unwrap_or(",");
-                    let list: Vec<String> = text
-                        .split(sep)
-                        .map(|item: &str| item.to_string())
-                        .collect();
-                    Ok(($target, OptionValue::List(list)))
-                } else {
-                    let option = String::from($name);
-                    let target = Some(String::from($target));
-                    Err(ArgotError::NullArg { option, target })
-                }
-            }}
-        }
-
         if let Some(entry) = self.configs.get(name) {
             match entry {
-                ConfigEntry::Flag => flag_option!(name),
+                ConfigEntry::Flag => {
+                    Ok((name, OptionValue::Flag))
+                }
                 ConfigEntry::Text { default } => {
-                    text_option!(name, value, default)
+                    if let Some(text) = value {
+                        Ok((name, OptionValue::Text(text.into())))
+                    } else if let Some(text) = default {
+                        Ok((name, OptionValue::Text(text.into())))
+                    } else {
+                        Err(ArgotError::NullArg {
+                            option: name.into(),
+                            target: None
+                        })
+                    }
                 },
                 ConfigEntry::Int { default } => {
-                    int_option!(name, value, default)
+                    if value.is_none() && default.is_none() {
+                        let option = name.to_string();
+                        Err(ArgotError::NullInt { option, target: None })
+                    } else if value.is_none() {
+                        let num = default.unwrap_or_default();
+                        Ok((name, OptionValue::Int(num)))
+                    } else {
+                        let num = parse_int(value.unwrap_or_default())?;
+                        Ok((name, OptionValue::Int(num)))
+                    }
                 },
-                ConfigEntry::Count => count_option!(name, value),
+                ConfigEntry::Count => {
+                    match value {
+                        Some(input) => {
+                            let num = parse_int(input)?;
+                            Ok((name, OptionValue::Int(num)))
+                        },
+                        None => Ok((name, OptionValue::Int(1))),
+                    }
+                },
                 ConfigEntry::List { sep } => {
-                    list_option!(name, value, sep)
+                    if value.is_some() && value.unwrap().is_empty() {
+                        Ok((name, OptionValue::List(Vec::new())))
+                    } else if let Some(text) = value {
+                        let sep: &str = sep.as_deref().unwrap_or(",");
+                        let list: Vec<String> = text
+                            .split(sep)
+                            .map(|item: &str| item.to_string())
+                            .collect();
+                        Ok((name, OptionValue::List(list)))
+                    } else {
+                        Err(ArgotError::NullArg {
+                            option: name.into(),
+                            target: None,
+                        })
+                    }
                 },
                 ConfigEntry::Alias { target } => {
-                    if let Some(target_entry) = self.configs.get(target) {
-                        match target_entry {
-                            ConfigEntry::Flag => flag_option!(target),
-                            ConfigEntry::Text { default } => {
-                                text_option!(name, target, value, default)
-                            },
-                            ConfigEntry::Int { default } => {
-                                int_option!(name, target, value, default)
-                            },
-                            ConfigEntry::Count => count_option!(target, value),
-                            ConfigEntry::List { sep } => {
-                                list_option!(name, target, value, sep)
-                            },
-                            ConfigEntry::Alias { .. } => {
-                                panic!("alias 2 alias");
-                                //Err(ArgotError::InvalidAliasTarget)
-                            },
+                    let target_entry = self.configs.get(target)
+                        .expect("target option was not found");
+                    match target_entry {
+                        ConfigEntry::Flag => {
+                            Ok((target, OptionValue::Flag))
+                        },
+                        ConfigEntry::Text { default } => {
+                            if let Some(text) = value {
+                                Ok((target, OptionValue::Text(text.into())))
+                            } else if let Some(text) = default {
+                                Ok((target, OptionValue::Text(text.into())))
+                            } else {
+                                Err(ArgotError::NullArg {
+                                    option: name.into(),
+                                    target: Some(target.into()),
+                                })
+                            }
+                        },
+                        ConfigEntry::Int { default } => {
+                            if value.is_none() && default.is_none() {
+                                let option = name.to_string();
+                                let target = Some(target.into());
+                                Err(ArgotError::NullInt { option, target })
+                            } else if value.is_none() {
+                                let num = default.unwrap_or_default();
+                                Ok((target, OptionValue::Int(num)))
+                            } else {
+                                let num = parse_int(value.unwrap_or_default())?;
+                                Ok((target, OptionValue::Int(num)))
+                            }
+                        },
+                        ConfigEntry::Count => {
+                            match value {
+                                Some(input) => {
+                                    let num = parse_int(input)?;
+                                    Ok((target, OptionValue::Int(num)))
+                                },
+                                None => Ok((target, OptionValue::Int(1))),
+                            }
                         }
-                    } else {
-                        Err(ArgotError::AliasTargetNotFound {
-                            option: name.to_string(),
-                            target: target.to_string(),
-                        })
+                        ConfigEntry::List { sep } => {
+                            if value.is_some() && value.unwrap().is_empty() {
+                                Ok((target, OptionValue::List(Vec::new())))
+                            } else if let Some(text) = value {
+                                let sep: &str = sep.as_deref().unwrap_or(",");
+                                let list: Vec<String> = text
+                                    .split(sep)
+                                    .map(|item: &str| item.to_string())
+                                    .collect();
+                                Ok((target, OptionValue::List(list)))
+                            } else {
+                                Err(ArgotError::NullArg {
+                                    option: name.into(),
+                                    target: Some(target.into()),
+                                })
+                            }
+                        },
+                        ConfigEntry::Alias { .. } => {
+                            unreachable!()
+                        },
                     }
                 },
             }
         } else {
-            Err(ArgotError::UnknownOption {
-                option: name.into()
-            })
+            Err(ArgotError::UnknownOption { option: name.into() })
         }
     }
 
@@ -395,113 +366,107 @@ impl ArgParser {
                     });
                 },
                 ConfigEntry::Alias { target } => {
-                    if let Some(target_entry) = self.configs.get(target) {
-                        let target: String = target.clone();
-                        match target_entry {
-                            ConfigEntry::Flag => {
-                                pairs.insert(target, OptionValue::Flag);
-                            },
-                            ConfigEntry::Text { default } => {
-                                if i < n - flag.len_utf8() {
-                                    let value = arg[i + flag.len_utf8()..n]
-                                        .to_string();
-                                    pairs.insert(
-                                        target,
-                                        OptionValue::Text(value)
-                                    );
-                                    return Ok((false, pairs));
-                                } else if let Some(value) = default {
-                                    pairs.insert(
-                                        target,
-                                        OptionValue::Text(value.into())
-                                    );
-                                    return Ok((false, pairs));
-                                } else if let Some(value) = next_value {
-                                    pairs.insert(
-                                        target,
-                                        OptionValue::Text(value.into())
-                                    );
-                                    return Ok((true, pairs));
-                                }
-                                return Err(ArgotError::NullArg {
+                    let target_entry = self.configs.get(target)
+                        .expect("target option was not found");
+                    let target: String = target.clone();
+                    match target_entry {
+                        ConfigEntry::Flag => {
+                            pairs.insert(target, OptionValue::Flag);
+                        },
+                        ConfigEntry::Text { default } => {
+                            if i < n - flag.len_utf8() {
+                                let value = arg[i + flag.len_utf8()..n]
+                                    .to_string();
+                                pairs.insert(
+                                    target,
+                                    OptionValue::Text(value)
+                                );
+                                return Ok((false, pairs));
+                            } else if let Some(value) = default {
+                                pairs.insert(
+                                    target,
+                                    OptionValue::Text(value.into())
+                                );
+                                return Ok((false, pairs));
+                            } else if let Some(value) = next_value {
+                                pairs.insert(
+                                    target,
+                                    OptionValue::Text(value.into())
+                                );
+                                return Ok((true, pairs));
+                            }
+                            return Err(ArgotError::NullArg {
+                                option: name,
+                                target: Some(target),
+                            });
+                        },
+                        ConfigEntry::Int { default } => {
+                            if i < n - flag.len_utf8() {
+                                let value = arg[i + flag.len_utf8()..n]
+                                    .to_string();
+                                let num = parse_int(&value)?;
+                                pairs.insert(target, OptionValue::Int(num));
+                                return Ok((false, pairs));
+                            } else if let Some(num) = default {
+                                pairs.insert(
+                                    target,
+                                    OptionValue::Int(*num),
+                                );
+                                return Ok((false, pairs));
+                            } else if let Some(value) = next_value {
+                                let num = parse_int(value)?;
+                                pairs.insert(target, OptionValue::Int(num));
+                                return Ok((true, pairs));
+                            } else {
+                                return Err(ArgotError::NullInt {
                                     option: name,
                                     target: Some(target),
                                 });
-                            },
-                            ConfigEntry::Int { default } => {
-                                if i < n - flag.len_utf8() {
-                                    let value = arg[i + flag.len_utf8()..n]
-                                        .to_string();
-                                    let num = parse_int(&value)?;
-                                    pairs.insert(target, OptionValue::Int(num));
-                                    return Ok((false, pairs));
-                                } else if let Some(num) = default {
-                                    pairs.insert(
-                                        target,
-                                        OptionValue::Int(*num),
-                                    );
-                                    return Ok((false, pairs));
-                                } else if let Some(value) = next_value {
-                                    let num = parse_int(value)?;
-                                    pairs.insert(target, OptionValue::Int(num));
-                                    return Ok((true, pairs));
+                            }
+                        },
+                        ConfigEntry::Count => {
+                            let default = OptionValue::Int(0);
+                            let old_value = pairs.get(&target)
+                                .unwrap_or(&default);
+                            pairs.insert(target, old_value.clone() + 1);
+                        },
+                        ConfigEntry::List { sep } => {
+                            let sep: &str = sep.as_deref().unwrap_or(",");
+                            if i < n - flag.len_utf8() {
+                                let value = arg[i + flag.len_utf8()..n]
+                                    .to_string();
+                                let parsed_value: Vec<String> = value
+                                    .split(sep)
+                                    .map(|item: &str| item.to_string())
+                                    .collect();
+                                pairs.insert(
+                                    target,
+                                    OptionValue::List(parsed_value),
+                                );
+                                return Ok((false, pairs));
+                            } else if let Some(value) = next_value {
+                                let parsed_value = if value.is_empty() {
+                                    Vec::new()
                                 } else {
-                                    return Err(ArgotError::NullInt {
-                                        option: name,
-                                        target: Some(target),
-                                    });
-                                }
-                            },
-                            ConfigEntry::Count => {
-                                let default = OptionValue::Int(0);
-                                let old_value = pairs.get(&target)
-                                    .unwrap_or(&default);
-                                pairs.insert(target, old_value.clone() + 1);
-                            },
-                            ConfigEntry::List { sep } => {
-                                let sep: &str = sep.as_deref().unwrap_or(",");
-                                if i < n - flag.len_utf8() {
-                                    let value = arg[i + flag.len_utf8()..n]
-                                        .to_string();
-                                    let parsed_value: Vec<String> = value
+                                    value
                                         .split(sep)
                                         .map(|item: &str| item.to_string())
-                                        .collect();
-                                    pairs.insert(
-                                        target,
-                                        OptionValue::List(parsed_value),
-                                    );
-                                    return Ok((false, pairs));
-                                } else if let Some(value) = next_value {
-                                    let parsed_value = if value.is_empty() {
-                                        Vec::new()
-                                    } else {
-                                        value
-                                            .split(sep)
-                                            .map(|item: &str| item.to_string())
-                                            .collect()
-                                    };
-                                    pairs.insert(
-                                        target,
-                                        OptionValue::List(parsed_value),
-                                    );
-                                    return Ok((true, pairs));
-                                }
-                                return Err(ArgotError::NullArg {
-                                    option: name,
-                                    target: Some(target),
-                                });
-                            },
-                            ConfigEntry::Alias { .. } => {
-                                panic!("alias 2 alias");
-                                //return Err(ArgotError::InvalidAliasTarget);
-                            },
-                        }
-                    } else {
-                        return Err(ArgotError::AliasTargetNotFound {
-                            option: name,
-                            target: target.to_string(),
-                        });
+                                        .collect()
+                                };
+                                pairs.insert(
+                                    target,
+                                    OptionValue::List(parsed_value),
+                                );
+                                return Ok((true, pairs));
+                            }
+                            return Err(ArgotError::NullArg {
+                                option: name,
+                                target: Some(target),
+                            });
+                        },
+                        ConfigEntry::Alias { .. } => {
+                            unreachable!()
+                        },
                     }
                 },
             }
